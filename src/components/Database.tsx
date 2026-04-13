@@ -31,8 +31,11 @@ export default function Database() {
     setLoading(true);
     fetch('/api/generations')
       .then(r => r.json())
-      .then((data: Generation[]) => { setGenerations(data); setLoading(false); })
-      .catch(err => { setError(err.message); setLoading(false); });
+      .then((data: unknown) => {
+        setGenerations(Array.isArray(data) ? (data as Generation[]) : []);
+        setLoading(false);
+      })
+      .catch(err => { setError(err instanceof Error ? err.message : 'Error de red'); setLoading(false); });
   };
 
   useEffect(() => { loadGenerations(); }, []);

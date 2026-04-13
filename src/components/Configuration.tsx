@@ -22,9 +22,9 @@ export default function Configuration() {
       fetch('/api/angles').then(r => r.json()),
       fetch('/api/config').then(r => r.json()),
     ]).then(([exData, angData, cfgData]) => {
-      setExercises(exData);
-      setAngles(angData);
-      setMasterPrompt(cfgData.master_prompt ?? '');
+      setExercises(Array.isArray(exData) ? exData : []);
+      setAngles(Array.isArray(angData) ? angData : []);
+      setMasterPrompt((cfgData as Record<string, string>)?.master_prompt ?? '');
       setLoading(false);
     }).catch(console.error);
   }, []);

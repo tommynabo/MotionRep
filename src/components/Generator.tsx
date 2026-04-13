@@ -26,11 +26,18 @@ export default function Generator() {
 
   // Load exercises and angles on mount
   useEffect(() => {
-    fetch('/api/exercises').then(r => r.json()).then(setExercises).catch(console.error);
-    fetch('/api/angles').then(r => r.json()).then((data: CameraAngle[]) => {
-      setAngles(data);
-      if (data.length > 0) setSelectedAngleId(data[0].id);
-    }).catch(console.error);
+    fetch('/api/exercises')
+      .then(r => r.json())
+      .then(data => setExercises(Array.isArray(data) ? data : []))
+      .catch(console.error);
+    fetch('/api/angles')
+      .then(r => r.json())
+      .then((data: unknown) => {
+        const list = Array.isArray(data) ? (data as CameraAngle[]) : [];
+        setAngles(list);
+        if (list.length > 0) setSelectedAngleId(list[0].id);
+      })
+      .catch(console.error);
   }, []);
 
   // Filter exercises as user types
