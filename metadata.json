@@ -1,0 +1,5 @@
+{
+  "name": "MotionREP",
+  "description": "Herramienta interna para generar vídeos de fitness hiperrealistas mediante IA.",
+  "requestFramePermissions": []
+}
