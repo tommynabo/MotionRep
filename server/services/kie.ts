@@ -62,6 +62,53 @@ async function pollTask(taskId: string): Promise<string[]> {
 }
 
 /**
+ * Poll a Flux Kontext task using its dedicated endpoint.
+ * successFlag: 0=generating, 1=success, 2=create failed, 3=generate failed
+ */
+async function pollFluxTask(taskId: string): Promise<string> {
+  const maxAttempts = 60; // up to ~5 minutes at 5-second intervals
+  const intervalMs = 5_000;
+
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+
+    const res = await fetch(
+      `${KIE_API_BASE}/flux/kontext/record-info?taskId=${encodeURIComponent(taskId)}`,
+      { headers: { Authorization: `Bearer ${process.env.KIE_KEY ?? ''}` } },
+    );
+    const json = (await res.json()) as {
+      code: number;
+      msg: string;
+      data: {
+        successFlag: number;
+        failMsg?: string;
+        response?: { resultImageUrl: string };
+      };
+    };
+
+    if (json.code !== 200) {
+      throw new Error(`KIE Flux Kontext poll error ${json.code}: ${json.msg}`);
+    }
+
+    const { successFlag, failMsg, response } = json.data;
+
+    if (successFlag === 1) {
+      const url = response?.resultImageUrl;
+      if (!url) throw new Error('KIE Flux Kontext returned success but no resultImageUrl');
+      return url;
+    }
+
+    if (successFlag === 2 || successFlag === 3) {
+      throw new Error(`KIE Flux Kontext task failed: ${failMsg ?? 'unknown error'}`);
+    }
+
+    // successFlag === 0 → still generating, keep polling
+  }
+
+  throw new Error(`KIE Flux Kontext task ${taskId} timed out after ${maxAttempts} attempts`);
+}
+
+/**
  * Generate a static image using Flux Kontext Pro (image-to-image).
  * Uses the reference model photo to preserve facial identity.
  * Produces a pure white background instructional fitness image.
@@ -73,22 +120,24 @@ export async function generateImageFromReference(
 ): Promise<string> {
   const promptText = assembleImagePromptText(imagePromptJson);
 
-  const taskId = await createTask({
-    model: 'flux1-kontext',
-    input: {
-      image_url: referenceImageUrl,
+  // Flux Kontext uses its own dedicated endpoint — NOT /jobs/createTask
+  const res = await fetch(`${KIE_API_BASE}/flux/kontext/generate`, {
+    method: 'POST',
+    headers: kieHeaders(),
+    body: JSON.stringify({
+      model: 'flux-kontext-pro',
       prompt: promptText,
-      aspect_ratio: '9:16',
-      resolution: '1K',
-    },
+      inputImage: referenceImageUrl,
+      aspectRatio: '9:16',
+      outputFormat: 'jpeg',
+    }),
   });
-
-  const urls = await pollTask(taskId);
-  const imageUrl = urls[0];
-  if (!imageUrl) {
-    throw new Error('KIE Flux Kontext did not return an image URL');
+  const json = (await res.json()) as { code: number; msg: string; data: { taskId: string } };
+  if (json.code !== 200) {
+    throw new Error(`KIE Flux Kontext error ${json.code}: ${json.msg}`);
   }
-  return imageUrl;
+
+  return await pollFluxTask(json.data.taskId);
 }
 
 /**
