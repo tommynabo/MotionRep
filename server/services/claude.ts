@@ -90,7 +90,7 @@ Generate the dual JSON prompt now.`;
 
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',
-    max_tokens: 2048,
+    max_tokens: 4096,
     messages: [{ role: 'user', content: userMessage }],
     system: systemMessage,
   });
@@ -102,7 +102,9 @@ Generate the dual JSON prompt now.`;
 
   let parsed: { image: ImagePromptJson; video: VideoPromptJson };
   try {
-    parsed = JSON.parse(content.text.trim());
+    // Strip markdown code fences if Claude wrapped the output despite instructions
+    const raw = content.text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    parsed = JSON.parse(raw);
   } catch {
     throw new Error(`Claude returned invalid JSON: ${content.text.slice(0, 200)}`);
   }
