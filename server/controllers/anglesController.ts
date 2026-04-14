@@ -8,7 +8,6 @@ export async function listAngles(req: Request, res: Response): Promise<void> {
     .order('name');
 
   if (error) {
-    console.error('[angles] listAngles Supabase error:', error.message, error.code, error.details);
     res.status(500).json({ error: error.message });
     return;
   }

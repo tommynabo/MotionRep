@@ -16,12 +16,15 @@ export async function startGeneration(req: Request, res: Response): Promise<void
     return;
   }
 
-  // Fetch exercise, angle and config data from Supabase
-  const [exerciseResult, angleResult, masterPromptResult, refImageResult] = await Promise.all([
+  // Reference model image — hardcoded Cloudinary URL, no Supabase dependency
+  const REFERENCE_MODEL_IMAGE_URL =
+    'https://res.cloudinary.com/dq9mlk8x3/image/upload/v1776174615/bodybuilder-posing-gym-young-athlete-man-beautiful-body-69792530_f0qwif.webp';
+
+  // Fetch exercise, angle and master prompt from Supabase
+  const [exerciseResult, angleResult, masterPromptResult] = await Promise.all([
     supabase.from('exercises').select('name, base_technique').eq('id', exercise_id).single(),
     supabase.from('camera_angles').select('name, prompt_modifier').eq('id', angle_id).single(),
     supabase.from('config').select('value').eq('key', 'master_prompt').single(),
-    supabase.from('config').select('value').eq('key', 'reference_model_image_url').single(),
   ]);
 
   if (exerciseResult.error || !exerciseResult.data) {
@@ -32,15 +35,11 @@ export async function startGeneration(req: Request, res: Response): Promise<void
     res.status(404).json({ error: 'Camera angle not found' });
     return;
   }
-  if (refImageResult.error || !refImageResult.data?.value) {
-    res.status(500).json({ error: 'Reference model image not configured. Add reference_model_image_url to config.' });
-    return;
-  }
 
   const exercise = exerciseResult.data;
   const angle = angleResult.data;
   const masterPrompt = masterPromptResult.data?.value ?? '';
-  const referenceImageUrl = refImageResult.data.value;
+  const referenceImageUrl = REFERENCE_MODEL_IMAGE_URL;
 
   // Create the generation record with status 'pending'
   const { data: generation, error: insertError } = await supabase
