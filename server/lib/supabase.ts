@@ -1,18 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
-// Server-side backend always uses the service role key, which bypasses RLS.
-// Never expose this key to the frontend/browser.
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Prefer service role key (bypasses RLS). Fall back to anon key if not set.
+const supabaseKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
-const missing = [
-  !supabaseUrl && 'SUPABASE_URL',
-  !supabaseKey && 'SUPABASE_SERVICE_ROLE_KEY',
-].filter(Boolean);
-
-if (missing.length > 0) {
+if (!supabaseUrl || !supabaseKey) {
   throw new Error(
-    `Missing required environment variables: ${missing.join(', ')}. ` +
+    'Missing required environment variables: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY). ' +
     'Set them in Vercel project settings (Settings → Environment Variables) and redeploy.',
   );
 }
