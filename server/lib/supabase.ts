@@ -1,13 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// SUPABASE_ANON_KEY is used here. RLS policies on all tables allow full read/write
+// with the anon key (configured in Supabase). This runs server-side only.
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables');
+const missing = [
+  !supabaseUrl && 'SUPABASE_URL',
+  !supabaseKey && 'SUPABASE_ANON_KEY',
+].filter(Boolean);
+
+if (missing.length > 0) {
+  throw new Error(
+    `Missing required environment variables: ${missing.join(', ')}. ` +
+    'Set them in Vercel project settings (Settings → Environment Variables) and redeploy.',
+  );
 }
 
-// Service-role client: bypasses RLS, only used server-side
-export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+export const supabase = createClient(supabaseUrl!, supabaseKey!, {
   auth: { persistSession: false },
 });

@@ -305,7 +305,8 @@ INSERT INTO public.config (key, value, description) VALUES
   ('max_daily_generations',  '50',   'Límite de generaciones por usuario por día'),
   ('flux_model',   'fal-ai/flux-pro/v1.1',                       'Modelo Flux activo'),
   ('kling_model',  'fal-ai/kling-video/v1.6/pro/image-to-video', 'Modelo Kling activo'),
-  ('claude_model', 'claude-3-5-sonnet-20241022',                  'Modelo Claude activo')
+  ('claude_model', 'claude-3-5-sonnet-20241022',                  'Modelo Claude activo'),
+  ('reference_model_image_url', 'https://kmdqecykrvwloggbjjli.supabase.co/storage/v1/object/public/reference-images/bodybuilder-posing-gym-young-athlete-man-beautiful-body-69792530.webp', 'URL pública de la foto del modelo de referencia en Supabase Storage. Usada por Flux Kontext (flux1-kontext) para mantener consistencia facial en todas las generaciones.')
 ON CONFLICT (key) DO NOTHING;
 
 INSERT INTO public.tags (name, color) VALUES

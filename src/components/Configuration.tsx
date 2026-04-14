@@ -9,6 +9,7 @@ export default function Configuration() {
   const [angles, setAngles] = useState<CameraAngle[]>([]);
   const [newExercise, setNewExercise] = useState('');
   const [newExerciseCategory, setNewExerciseCategory] = useState('General');
+  const [newExerciseTechnique, setNewExerciseTechnique] = useState('');
   const [newAngle, setNewAngle] = useState('');
   const [newAngleModifier, setNewAngleModifier] = useState('');
   const [masterPrompt, setMasterPrompt] = useState('');
@@ -34,11 +35,12 @@ export default function Configuration() {
     const res = await fetch('/api/exercises', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newExercise.trim(), category: newExerciseCategory }),
+      body: JSON.stringify({ name: newExercise.trim(), category: newExerciseCategory, base_technique: newExerciseTechnique.trim() }),
     });
     const data = await res.json();
     setExercises(prev => [...prev, data]);
     setNewExercise('');
+    setNewExerciseTechnique('');
   };
 
   const removeExercise = async (id: string) => {
@@ -104,7 +106,11 @@ export default function Configuration() {
             </div>
             <input type="text" value={newExerciseCategory} onChange={e => setNewExerciseCategory(e.target.value)}
               placeholder="Categoría (ej. Brazos, Piernas...)"
-              className="w-full mb-4 px-4 py-2 bg-dark-bg border border-dark-border rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-neon-green focus:border-neon-green transition-colors text-sm" />
+              className="w-full mt-2 px-4 py-2 bg-dark-bg border border-dark-border rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-neon-green focus:border-neon-green transition-colors text-sm" />
+            <textarea value={newExerciseTechnique} onChange={e => setNewExerciseTechnique(e.target.value)}
+              placeholder="Técnica base / biomecánica (usado por Claude para generar el prompt)..."
+              rows={2}
+              className="w-full mt-2 mb-4 px-4 py-2 bg-dark-bg border border-dark-border rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-neon-green focus:border-neon-green transition-colors text-sm resize-none" />
             <div className="mt-2 max-h-48 overflow-y-auto space-y-1 pr-1">
               {exercises.map(ex => (
                 <div key={ex.id} className="flex items-center justify-between px-3 py-1.5 bg-dark-bg border border-dark-border rounded-xl group">

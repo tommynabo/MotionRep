@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
+import { waitUntil } from '@vercel/functions';
 import { supabase } from '../lib/supabase.js';
-import { buildGenerationPrompt } from '../services/claude.js';
-import { generateImage, generateVideo } from '../services/fal.js';
+import { buildDualPrompts } from '../services/claude.js';
+import { generateImageFromReference, generateVideo } from '../services/kie.js';
 
 export async function startGeneration(req: Request, res: Response): Promise<void> {
   const { exercise_id, angle_id, user_observations } = req.body as {
@@ -15,11 +16,12 @@ export async function startGeneration(req: Request, res: Response): Promise<void
     return;
   }
 
-  // Fetch exercise and angle data from Supabase
-  const [exerciseResult, angleResult, configResult] = await Promise.all([
+  // Fetch exercise, angle and config data from Supabase
+  const [exerciseResult, angleResult, masterPromptResult, refImageResult] = await Promise.all([
     supabase.from('exercises').select('name, base_technique').eq('id', exercise_id).single(),
     supabase.from('camera_angles').select('name, prompt_modifier').eq('id', angle_id).single(),
     supabase.from('config').select('value').eq('key', 'master_prompt').single(),
+    supabase.from('config').select('value').eq('key', 'reference_model_image_url').single(),
   ]);
 
   if (exerciseResult.error || !exerciseResult.data) {
@@ -30,10 +32,15 @@ export async function startGeneration(req: Request, res: Response): Promise<void
     res.status(404).json({ error: 'Camera angle not found' });
     return;
   }
+  if (refImageResult.error || !refImageResult.data?.value) {
+    res.status(500).json({ error: 'Reference model image not configured. Add reference_model_image_url to config.' });
+    return;
+  }
 
   const exercise = exerciseResult.data;
   const angle = angleResult.data;
-  const masterPrompt = configResult.data?.value ?? '';
+  const masterPrompt = masterPromptResult.data?.value ?? '';
+  const referenceImageUrl = refImageResult.data.value;
 
   // Create the generation record with status 'pending'
   const { data: generation, error: insertError } = await supabase
@@ -57,16 +64,20 @@ export async function startGeneration(req: Request, res: Response): Promise<void
   // Respond immediately so the frontend can start polling
   res.status(202).json({ generation_id: generationId, status: 'pending' });
 
-  // Run the pipeline asynchronously (fire-and-forget with error handling)
-  runPipeline({
-    generationId,
-    exercise,
-    angle,
-    userObservations: user_observations ?? '',
-    masterPrompt,
-  }).catch((err) => {
-    console.error(`[Pipeline] Unhandled error for generation ${generationId}:`, err);
-  });
+  // waitUntil keeps the serverless function alive until the pipeline finishes,
+  // even after the HTTP response has been sent (required for Vercel serverless).
+  waitUntil(
+    runPipeline({
+      generationId,
+      exercise,
+      angle,
+      userObservations: user_observations ?? '',
+      masterPrompt,
+      referenceImageUrl,
+    }).catch((err) => {
+      console.error(`[Pipeline] Unhandled error for generation ${generationId}:`, err);
+    }),
+  );
 }
 
 async function runPipeline(params: {
@@ -75,13 +86,16 @@ async function runPipeline(params: {
   angle: { name: string; prompt_modifier: string };
   userObservations: string;
   masterPrompt: string;
+  referenceImageUrl: string;
 }): Promise<void> {
-  const { generationId, exercise, angle, userObservations, masterPrompt } = params;
+  const { generationId, exercise, angle, userObservations, masterPrompt, referenceImageUrl } = params;
 
   try {
-    // STEP A: Build the prompt with Claude
-    console.log(`[Pipeline ${generationId}] Step A: Building prompt with Claude...`);
-    const finalPrompt = await buildGenerationPrompt({
+    // STEP A: Build dual JSON prompts with Claude
+    console.log(`[Pipeline ${generationId}] Step A: Building dual prompts with Claude...`);
+    await supabase.from('generations').update({ status: 'prompting' }).eq('id', generationId);
+
+    const { imagePrompt, videoPrompt } = await buildDualPrompts({
       exerciseName: exercise.name,
       baseTechnique: exercise.base_technique,
       cameraAngle: angle.name,
@@ -90,23 +104,25 @@ async function runPipeline(params: {
       masterPromptTemplate: masterPrompt,
     });
 
+    // Store the full dual-prompt JSON for auditability
     await supabase
       .from('generations')
-      .update({ final_prompt_used: finalPrompt })
+      .update({ final_prompt_used: JSON.stringify({ image: imagePrompt, video: videoPrompt }) })
       .eq('id', generationId);
 
-    // STEP B: Generate image with Flux 2.0 Pro
-    console.log(`[Pipeline ${generationId}] Step B: Generating image with Flux...`);
-    const imageUrl = await generateImage(finalPrompt);
+    // STEP B: Generate image with Flux Kontext Pro (img2img, face reference)
+    console.log(`[Pipeline ${generationId}] Step B: Generating image with Flux Kontext Pro...`);
+    const imageUrl = await generateImageFromReference(imagePrompt, referenceImageUrl);
 
     await supabase
       .from('generations')
       .update({ image_url: imageUrl, status: 'image_done' })
       .eq('id', generationId);
 
-    // STEP C: Generate video with Kling AI
-    console.log(`[Pipeline ${generationId}] Step C: Generating video with Kling...`);
-    const videoUrl = await generateVideo(imageUrl, finalPrompt);
+    // STEP C: Generate video with Kling 2.6
+    console.log(`[Pipeline ${generationId}] Step C: Generating video with Kling 2.6...`);
+    await supabase.from('generations').update({ status: 'animating' }).eq('id', generationId);
+    const videoUrl = await generateVideo(imageUrl, videoPrompt);
 
     await supabase
       .from('generations')

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Play, Download, RefreshCw, Clock, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 
 interface Generation {
@@ -22,10 +23,10 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function Database() {
+  const navigate = useNavigate();
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedVideo, setSelectedVideo] = useState<Generation | null>(null);
 
   const loadGenerations = () => {
     setLoading(true);
@@ -43,7 +44,6 @@ export default function Database() {
   const handleDelete = async (id: string) => {
     await fetch(`/api/generations/${id}`, { method: 'DELETE' });
     setGenerations(prev => prev.filter(g => g.id !== id));
-    if (selectedVideo?.id === id) setSelectedVideo(null);
   };
 
   const handleDownload = (url: string, name: string) => {
@@ -103,7 +103,7 @@ export default function Database() {
                 {/* Play overlay for completed videos */}
                 {gen.status === 'completed' && gen.video_url && (
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <button onClick={() => setSelectedVideo(gen)}
+                    <button onClick={() => navigate(`/base/${gen.id}`)}
                       className="w-12 h-12 bg-neon-green/90 text-black rounded-full flex items-center justify-center pl-1 hover:scale-110 transition-transform shadow-[0_0_20px_rgba(0,255,102,0.5)]">
                       <Play className="w-5 h-5 fill-current" />
                     </button>
@@ -130,7 +130,7 @@ export default function Database() {
                 <div className="flex items-center gap-2 pt-4 border-t border-dark-border">
                   <button
                     disabled={gen.status !== 'completed' || !gen.video_url}
-                    onClick={() => setSelectedVideo(gen)}
+                    onClick={() => navigate(`/base/${gen.id}`)}
                     className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-dark-bg hover:bg-zinc-800 border border-dark-border rounded-lg text-sm font-medium text-zinc-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                     <Play className="w-4 h-4" /> Reproducir
                   </button>
@@ -149,17 +149,6 @@ export default function Database() {
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Video Modal */}
-      {selectedVideo?.video_url && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setSelectedVideo(null)}>
-          <div className="relative max-w-4xl w-full" onClick={e => e.stopPropagation()}>
-            <video controls autoPlay className="w-full rounded-2xl shadow-2xl" src={selectedVideo.video_url} />
-            <button onClick={() => setSelectedVideo(null)}
-              className="absolute -top-4 -right-4 w-8 h-8 bg-dark-surface border border-dark-border rounded-full text-zinc-400 hover:text-white flex items-center justify-center transition-colors">✕</button>
-          </div>
         </div>
       )}
     </div>

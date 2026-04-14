@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, FormEvent } from 'react';
-import { Search, Video, Sparkles, Loader2, Camera, AlignLeft, CheckCircle, AlertCircle } from 'lucide-react';
+import { Search, Video, Sparkles, Loader2, Camera, AlignLeft, CheckCircle, AlertCircle, ChevronDown, ChevronUp, Terminal } from 'lucide-react';
 
 interface Exercise { id: string; name: string; category: string; }
 interface CameraAngle { id: string; name: string; }
-type GenerationStatus = 'pending' | 'image_done' | 'completed' | 'failed';
-interface GenerationResult { id: string; status: GenerationStatus; image_url?: string; video_url?: string; error_message?: string; }
+type GenerationStatus = 'pending' | 'prompting' | 'image_done' | 'animating' | 'completed' | 'failed';
+interface GenerationResult { id: string; status: GenerationStatus; image_url?: string; video_url?: string; error_message?: string; final_prompt_used?: string; }
 
 const POLL_INTERVAL = 4000; // ms
 
@@ -21,6 +21,7 @@ export default function Generator() {
   const [generationStep, setGenerationStep] = useState<0 | 1 | 2>(0);
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [showPrompt, setShowPrompt] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -89,6 +90,7 @@ export default function Generator() {
     setResult(null);
     setIsGenerating(true);
     setGenerationStep(1);
+    setShowPrompt(false);
 
     try {
       const res = await fetch('/api/generate', {
@@ -261,8 +263,8 @@ export default function Generator() {
                 </div>
               )}
 
-              {/* Image done: show image while video generates */}
-              {result?.status === 'image_done' && result.image_url && !isGenerating && (
+              {/* Image done / animating: show static image while video generates */}
+              {(result?.status === 'image_done' || result?.status === 'animating') && result.image_url && !isGenerating && (
                 <img src={result.image_url} alt="Generated pose" className="w-full h-full object-contain rounded-xl opacity-80" />
               )}
 
@@ -275,6 +277,27 @@ export default function Generator() {
                 </div>
               )}
             </div>
+
+            {/* Final prompt panel — shown after completion */}
+            {result?.status === 'completed' && result.final_prompt_used && (
+              <div className="mt-4 border border-dark-border rounded-xl overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowPrompt(v => !v)}
+                  className="w-full flex items-center justify-between px-4 py-2.5 bg-dark-bg hover:bg-dark-surface transition-colors text-xs"
+                >
+                  <span className="flex items-center gap-2 text-zinc-400 font-semibold uppercase tracking-wider">
+                    <Terminal className="w-3 h-3" /> Prompt generado por Claude
+                  </span>
+                  {showPrompt ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
+                </button>
+                {showPrompt && (
+                  <pre className="px-4 py-3 text-xs text-zinc-400 font-mono whitespace-pre-wrap leading-relaxed bg-[#050505] border-t border-dark-border max-h-48 overflow-y-auto">
+                    {result.final_prompt_used}
+                  </pre>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

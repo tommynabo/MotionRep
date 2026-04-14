@@ -1,29 +1,31 @@
 import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Layout from './components/Layout';
 import Generator from './components/Generator';
 import Database from './components/Database';
+import VideoDetail from './components/VideoDetail';
 import Configuration from './components/Configuration';
-
-export type View = 'generator' | 'database' | 'config';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentView, setCurrentView] = useState<View>('generator');
 
   if (!isLoggedIn) {
     return <Login onLogin={() => setIsLoggedIn(true)} />;
   }
 
   return (
-    <Layout 
-      currentView={currentView} 
-      onNavigate={setCurrentView} 
-      onLogout={() => setIsLoggedIn(false)}
-    >
-      {currentView === 'generator' && <Generator />}
-      {currentView === 'database' && <Database />}
-      {currentView === 'config' && <Configuration />}
-    </Layout>
+    <BrowserRouter>
+      <Layout onLogout={() => setIsLoggedIn(false)}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/generador" replace />} />
+          <Route path="/generador" element={<Generator />} />
+          <Route path="/base" element={<Database />} />
+          <Route path="/base/:id" element={<VideoDetail />} />
+          <Route path="/configuracion" element={<Configuration />} />
+          <Route path="*" element={<Navigate to="/generador" replace />} />
+        </Routes>
+      </Layout>
+    </BrowserRouter>
   );
 }

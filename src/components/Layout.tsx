@@ -1,21 +1,22 @@
 import { ReactNode } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Dumbbell, FolderOpen, Settings, LogOut } from 'lucide-react';
-import { View } from '../App';
 import Logo from './Logo';
 
 interface LayoutProps {
   children: ReactNode;
-  currentView: View;
-  onNavigate: (view: View) => void;
   onLogout: () => void;
 }
 
-export default function Layout({ children, currentView, onNavigate, onLogout }: LayoutProps) {
+export default function Layout({ children, onLogout }: LayoutProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const navItems = [
-    { id: 'generator', label: 'Generador', icon: Dumbbell },
-    { id: 'database', label: 'Base de Datos', icon: FolderOpen },
-    { id: 'config', label: 'Configuración', icon: Settings },
-  ] as const;
+    { path: '/generador', label: 'Generador', icon: Dumbbell },
+    { path: '/base', label: 'Base de Datos', icon: FolderOpen },
+    { path: '/configuracion', label: 'Configuración', icon: Settings },
+  ];
 
   return (
     <div className="min-h-screen flex bg-dark-bg text-white">
@@ -33,14 +34,14 @@ export default function Layout({ children, currentView, onNavigate, onLogout }: 
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = currentView === item.id;
+            const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
             return (
               <button
-                key={item.id}
-                onClick={() => onNavigate(item.id)}
+                key={item.path}
+                onClick={() => navigate(item.path)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                  isActive 
-                    ? 'bg-neon-green/10 text-neon-green border border-neon-green/20 shadow-[inset_0_0_10px_rgba(0,255,102,0.05)]' 
+                  isActive
+                    ? 'bg-neon-green/10 text-neon-green border border-neon-green/20 shadow-[inset_0_0_10px_rgba(0,255,102,0.05)]'
                     : 'text-zinc-400 hover:text-white hover:bg-dark-bg border border-transparent'
                 }`}
               >
@@ -67,7 +68,7 @@ export default function Layout({ children, currentView, onNavigate, onLogout }: 
         {/* Subtle background glow */}
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-neon-green/5 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-neon-blue/5 rounded-full blur-[100px] pointer-events-none" />
-        
+
         <div className="relative z-10 p-8 max-w-7xl mx-auto">
           {children}
         </div>
