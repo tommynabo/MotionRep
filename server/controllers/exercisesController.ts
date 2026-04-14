@@ -19,6 +19,7 @@ export async function listExercises(req: Request, res: Response): Promise<void> 
   const { data, error } = await query;
 
   if (error) {
+    console.error('[exercises] listExercises Supabase error:', error.message, error.code, error.details);
     res.status(500).json({ error: error.message });
     return;
   }

@@ -1,22 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Prefer service role key (bypasses RLS). Fall back to anon key for Production
+// environments where SERVICE_ROLE_KEY may not be scoped correctly.
+const supabaseKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??
+  process.env.SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  // Log clearly but do NOT throw — a module-level throw crashes the entire Vercel
-  // serverless function, making ALL routes (exercises, angles, etc.) return 500.
+console.log(
+  '[supabase] init — url present:', !!supabaseUrl,
+  '| service key present:', !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+  '| anon key present:', !!process.env.SUPABASE_ANON_KEY,
+  '| using key type:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'service_role' : 'anon',
+);
+
+if (!supabaseUrl || !supabaseKey) {
   console.error(
-    '[supabase] Missing env vars:',
-    !supabaseUrl ? 'SUPABASE_URL ' : '',
-    !supabaseServiceKey ? 'SUPABASE_SERVICE_ROLE_KEY' : '',
-    '— check Vercel Environment Variables and redeploy.',
+    '[supabase] CRITICAL — missing SUPABASE_URL or both SUPABASE_SERVICE_ROLE_KEY and SUPABASE_ANON_KEY.',
+    'All database operations will fail.',
   );
 }
 
-// Service-role client: bypasses RLS, only used server-side
+// Server-side client only — never exposed to the browser
 export const supabase = createClient(
   supabaseUrl ?? 'https://placeholder.supabase.co',
-  supabaseServiceKey ?? 'placeholder',
+  supabaseKey ?? 'placeholder',
   { auth: { persistSession: false } },
 );

@@ -4,8 +4,25 @@ import { listExercises, createExercise, deleteExercise } from '../controllers/ex
 import { listAngles, createAngle, deleteAngle } from '../controllers/anglesController.js';
 import { listGenerations, deleteGeneration } from '../controllers/generationsController.js';
 import { getConfig, upsertConfig } from '../controllers/configController.js';
+import { supabase } from '../lib/supabase.js';
 
 const router = Router();
+
+// Health check — returns env var status and a live Supabase ping
+router.get('/health', async (_req, res) => {
+  const { error } = await supabase.from('exercises').select('id').limit(1);
+  res.json({
+    status: error ? 'degraded' : 'ok',
+    supabase_error: error?.message ?? null,
+    env: {
+      SUPABASE_URL: !!process.env.SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      SUPABASE_ANON_KEY: !!process.env.SUPABASE_ANON_KEY,
+      ANTHROPIC_API_KEY: !!process.env.ANTHROPIC_API_KEY,
+      KIE_KEY: !!process.env.KIE_KEY,
+    },
+  });
+});
 
 // Generation pipeline
 router.post('/generate', startGeneration);
