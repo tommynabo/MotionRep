@@ -1,5 +1,4 @@
-import type { ImagePromptJson, VideoPromptJson } from './claude.js';
-import { assembleImagePromptText, assembleVideoPromptText } from './claude.js';
+// No imports from claude.ts needed — prompts are received as plain assembled strings.
 
 const KIE_API_BASE = 'https://api.kie.ai/api/v1';
 
@@ -115,10 +114,9 @@ async function pollFluxTask(taskId: string): Promise<string> {
  * Returns the URL of the generated image.
  */
 export async function generateImageFromReference(
-  imagePromptJson: ImagePromptJson,
+  promptText: string,
   referenceImageUrl: string,
 ): Promise<string> {
-  const promptText = assembleImagePromptText(imagePromptJson);
 
   // Flux Kontext uses its own dedicated endpoint — NOT /jobs/createTask
   const res = await fetch(`${KIE_API_BASE}/flux/kontext/generate`, {
@@ -147,9 +145,8 @@ export async function generateImageFromReference(
  */
 export async function generateVideo(
   imageUrl: string,
-  videoPromptJson: VideoPromptJson,
+  promptText: string,
 ): Promise<string> {
-  const promptText = assembleVideoPromptText(videoPromptJson);
 
   const taskId = await createTask({
     model: 'kling-2.6/image-to-video',
