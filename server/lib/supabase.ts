@@ -1,13 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
-// SUPABASE_ANON_KEY is used here. RLS policies on all tables allow full read/write
-// with the anon key (configured in Supabase). This runs server-side only.
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+// Server-side backend always uses the service role key, which bypasses RLS.
+// Never expose this key to the frontend/browser.
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const missing = [
   !supabaseUrl && 'SUPABASE_URL',
-  !supabaseKey && 'SUPABASE_ANON_KEY',
+  !supabaseKey && 'SUPABASE_SERVICE_ROLE_KEY',
 ].filter(Boolean);
 
 if (missing.length > 0) {
