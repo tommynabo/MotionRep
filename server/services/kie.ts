@@ -147,12 +147,17 @@ export async function generateVideo(
   imageUrl: string,
   promptText: string,
 ): Promise<string> {
+  // Kling 2.6 rejects prompts longer than 2500 characters with a 500 error.
+  const KLING_MAX_PROMPT_LENGTH = 2500;
+  const safePrompt = promptText.length > KLING_MAX_PROMPT_LENGTH
+    ? promptText.slice(0, KLING_MAX_PROMPT_LENGTH)
+    : promptText;
 
   const taskId = await createTask({
     model: 'kling-2.6/image-to-video',
     input: {
       image_urls: [imageUrl],
-      prompt: promptText,
+      prompt: safePrompt,
       sound: false,
       duration: '5',
     },
