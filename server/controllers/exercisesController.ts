@@ -23,6 +23,7 @@ export async function listExercises(req: Request, res: Response): Promise<void> 
     return;
   }
 
+  res.setHeader('Cache-Control', 'no-store');
   res.json(data);
 }
 
