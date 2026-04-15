@@ -147,8 +147,9 @@ export async function generateVideo(
   imageUrl: string,
   promptText: string,
 ): Promise<string> {
-  // Kling 2.6 rejects prompts longer than 2500 characters with a 500 error.
-  const KLING_MAX_PROMPT_LENGTH = 2500;
+  // Kling 2.6 rejects prompts beyond ~2500 chars with a 400 error.
+  // Use 2200 as a hard ceiling to stay safely within the limit.
+  const KLING_MAX_PROMPT_LENGTH = 2200;
   const safePrompt = promptText.length > KLING_MAX_PROMPT_LENGTH
     ? promptText.slice(0, KLING_MAX_PROMPT_LENGTH)
     : promptText;

@@ -138,10 +138,10 @@ Generate the dual prompts now following the Jeff Nippard Clinical Standard.`;
     throw new Error('Claude JSON missing required "image_prompt" or "video_prompt" keys');
   }
 
-  // Flux Kontext Pro accepts long prompts — keep up to 3000 chars
-  const MAX_IMAGE_PROMPT_LENGTH = 3000;
-  // Kling 2.6 rejects prompts longer than 2500 chars with a 500 error
-  const MAX_VIDEO_PROMPT_LENGTH = 2500;
+  // Flux Kontext Pro: 2750-char safety margin (API limit ~3000)
+  const MAX_IMAGE_PROMPT_LENGTH = 2750;
+  // Kling 2.6: 2200-char safety margin (API rejects beyond ~2500 with 400)
+  const MAX_VIDEO_PROMPT_LENGTH = 2200;
 
   const imagePrompt = parsed.image_prompt.length > MAX_IMAGE_PROMPT_LENGTH
     ? parsed.image_prompt.slice(0, MAX_IMAGE_PROMPT_LENGTH)
