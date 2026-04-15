@@ -19,12 +19,16 @@ export interface DualPrompts {
 export async function buildDualPrompts(params: {
   exerciseName: string;
   baseTechnique: string;
+  equipment: string;
+  muscleGroups: string[];
+  movementPattern: string;
+  techniqueCues: string[];
   cameraAngle: string;
   cameraModifier: string;
   userObservations: string;
   masterPromptTemplate: string;
 }): Promise<DualPrompts> {
-  const { exerciseName, baseTechnique, cameraAngle, cameraModifier, userObservations, masterPromptTemplate } = params;
+  const { exerciseName, baseTechnique, equipment, muscleGroups, movementPattern, techniqueCues, cameraAngle, cameraModifier, userObservations, masterPromptTemplate } = params;
 
   const systemMessage = `You are an expert Biomechanics Coach and Master AI Prompt Engineer for fitness video generation.
 Your task is to generate two complete, ready-to-send prompt strings following the "Jeff Nippard Clinical Standard".
@@ -50,9 +54,18 @@ The subject must ALWAYS be described as:
 "An athletic, lean 30-year-old man with a naturally defined muscular physique. He is shirtless to clearly display muscle activation and wearing dark gym shorts."
 Preserve exact facial identity, facial structure, skin tone and hair from the provided reference image throughout. Do NOT alter or regenerate the face.
 
-RULE 3 — ANATOMY AND GRIP PRECAUTIONS (Critical):
-You MUST explicitly include all of the following in the image_prompt:
-"Hands and fingers are perfectly formed. Realistic five fingers securely gripping the bar/handle. Thumbs are visibly wrapped around the bar. The metal bar does NOT blend or fuse with the skin. No extra fingers, no fused fingers, no floating hands, no missing thumbs. Natural knuckle definition and realistic skin compression against the implement."
+RULE 3 — ANATOMY AND GRIP PRECAUTIONS (Equipment-aware, Critical):
+The equipment type for this exercise is provided in the user message. You MUST adapt the grip and implement description based on that equipment type:
+
+- If equipment is "Barra" (barbell): "Hands and fingers are perfectly formed. Realistic five fingers securely gripping the bar. Thumbs are visibly wrapped around the bar. The metal bar does NOT blend or fuse with the skin. No extra fingers, no fused fingers, no floating hands, no missing thumbs. Natural knuckle definition and realistic skin compression against the bar."
+
+- If equipment is "Mancuernas" (dumbbells): "Both hands grip their respective dumbbell handles firmly. Realistic five fingers wrapped around each dumbbell handle. Knuckles facing outward, thumbs locked under the fingers. The dumbbell handle does NOT blend or fuse with the palm. No extra fingers, no fused fingers. The hexagonal dumbbell head is clearly distinct from the hand."
+
+- If equipment is "Cable" or "Polea" (cable machine): "The athlete's hands grip the cable attachment (D-ring / straight bar / rope) firmly. Realistic five fingers curled around the handle, thumbs secured. The cable runs visibly and continuously taut from the pulley overhead or behind to the attachment in the hands — the cable is NOT floating, NOT disconnected, NOT disappearing into the wrist. The cable machine stack and pulley housing are clearly visible in the background, establishing the physical connection."
+
+- If equipment is "Peso corporal" (bodyweight): Describe the contact points (hands on floor, feet, etc.) with precise anatomical detail. Skip implement grip unless the exercise involves apparatus (pull-up bar, dip bars, etc.).
+
+- For any other equipment: describe the implement-to-hand connection with the same level of anatomical precision.
 
 RULE 4 — GEOMETRIC CAMERA ANGLE (absolute enforcement):
 Use the exact camera angle instruction provided by the user. Insert it verbatim at the start of the image_prompt, immediately after the format declaration.
@@ -73,10 +86,22 @@ RULE 6 — IMPLEMENT SPATIAL POSITIONING (critical for compound lifts):
 For any exercise where the barbell is loaded on the upper back (back squat, high-bar squat, low-bar squat, good morning, barbell lunge, etc.), you MUST include this language in the image_prompt:
 "The barbell is positioned across the upper trapezius, BEHIND the neck and shoulders, resting on the rear deltoids. The bar is NOT visible in front of the body under any circumstance. From this camera angle, describe explicitly how the bar appears spatially — e.g., for 45°: a horizontal rod protruding slightly beyond the far shoulder into the background space; for lateral 90°: a horizontal rod extending perpendicularly away from the camera behind the neck; for frontal: a horizontal bar crossing behind the neck with both ends extending outward to each side."
 For any exercise where the barbell is held in front (deadlift, Romanian deadlift, front squat, bent-over row, etc.), describe the bar's exact spatial relationship to the body from the specified camera angle.
+For cable/pulley exercises: describe the cable attachment's 3D position relative to the body — where the hands are in space, the angle of pull, and the visible path of the cable back to the pulley anchor point on the machine.
 
 RULE 7 — FULL BODY FRAMING (mandatory, always):
 Every image_prompt MUST end with this exact framing instruction:
 "FULL BODY SHOT: The subject's entire body must be visible from head to feet with comfortable margin at top and bottom. Wide shot equivalent to a 35mm lens at 4-5 metres distance. The subject occupies 70-80% of the frame height. ABSOLUTE PROHIBITION: no cropping of feet, knees, hands or head. The complete body silhouette must be visible within the frame at all times."
+
+RULE 8 — CABLE & PULLEY MACHINE VISUAL ANCHORING (mandatory when equipment is Cable or Polea):
+If the exercise uses a cable machine, you MUST:
+1. Describe the cable machine visible in the background (weight stack, shroud, upright column, pulley wheel at top or bottom).
+2. Show the cable as a continuous taut line from the pulley down to the attachment in the athlete's hands. Use language like: "A steel cable runs in a straight taut line from the overhead pulley down to the D-ring handle gripped in both hands — the cable is under constant tension and clearly connected at both ends."
+3. In the video_prompt, reinforce that the cable remains taut and physically connected throughout the full range of motion: during the concentric phase the cable angle changes as the hands move, during the eccentric the cable elongates back toward the pulley — it is NEVER slack, NEVER floating, NEVER disconnected.
+4. ABSOLUTE PROHIBITION: generating the athlete performing the movement with hands empty, floating handles, or no visible cable connection is FORBIDDEN.
+
+RULE 9 — FULL BODY FRAMING IN VIDEO (mandatory, always):
+In the video_prompt, after the static camera header, explicitly reinforce:
+"FULL BODY FRAMING LOCKED: The camera captures the athlete from head to feet throughout the entire video. ABSOLUTE PROHIBITION: no zoom in, no crop, no reframing during movement. Feet, knees, and head must remain fully in frame during every phase of the repetition."
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IMAGE PROMPT CONSTRUCTION GUIDE
@@ -99,20 +124,26 @@ VIDEO PROMPT CONSTRUCTION GUIDE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Build the "video_prompt" string in this order:
 1. Static camera header (RULE 5 — insert verbatim)
-2. Motion description: full ROM cycle from the start position through peak contraction and back to start. Name every joint involved in the movement.
-3. Tempo: specify concentric phase duration, peak hold, eccentric phase duration (e.g., "2s concentric, 1s peak hold, 3s eccentric").
-4. Movement quality (RULE 5): "steady, biomechanically perfect, absolutely no swinging or momentum. Exactly 2 continuous repetitions."
-5. Physics: describe visible physical effects — weight inertia, muscle belly deformation at contraction, tendon stretch at full extension, realistic implement arc.
-6. Identity consistency: "Preserve exact facial features, skin tone, hair and overall body identity from the input reference frame throughout every frame of the video. No face morphing, no identity drift."`;
+2. Full body framing lock (RULE 9 — insert verbatim, immediately after the static camera header)
+3. Motion description: full ROM cycle from the start position through peak contraction and back to start. Name every joint involved in the movement.
+4. Tempo: specify concentric phase duration, peak hold, eccentric phase duration (e.g., "2s concentric, 1s peak hold, 3s eccentric").
+5. Movement quality (RULE 5): "steady, biomechanically perfect, absolutely no swinging or momentum. Exactly 2 continuous repetitions."
+6. Cable physics (RULE 8, only if cable/pulley exercise): describe that the cable remains taut and connected throughout the full ROM, changing angle in sync with the athlete's movement.
+7. Physics: describe visible physical effects — weight inertia, muscle belly deformation at contraction, tendon stretch at full extension, realistic implement arc.
+8. Identity consistency: "Preserve exact facial features, skin tone, hair and overall body identity from the input reference frame throughout every frame of the video. No face morphing, no identity drift."`;
 
   const userMessage = `Exercise: ${exerciseName}
+Equipment type: ${equipment}
+Primary muscles: ${muscleGroups.length > 0 ? muscleGroups.join(', ') : 'Not specified'}
+Movement pattern: ${movementPattern || 'Not specified'}
+Technique cues: ${techniqueCues.length > 0 ? techniqueCues.join(' | ') : 'None'}
 Correct technique (biomechanics reference): ${baseTechnique}
 Camera angle name: ${cameraAngle}
 Camera angle instruction (insert verbatim into image_prompt): ${cameraModifier}
 Coach observations: ${userObservations || 'None — use standard perfect form'}
 Style/environment supplementary reference: ${masterPromptTemplate}
 
-Generate the dual prompts now following the Jeff Nippard Clinical Standard.`;
+Generate the dual prompts now following the Jeff Nippard Clinical Standard. Pay special attention to RULE 3 (grip/implement) and apply the correct variant for the equipment type "${equipment}". If equipment involves cables or pulleys, enforce RULE 8 fully.`;
 
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',

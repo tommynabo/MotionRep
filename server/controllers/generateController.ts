@@ -22,7 +22,7 @@ export async function startGeneration(req: Request, res: Response): Promise<void
 
   // Fetch exercise, angle and master prompt from Supabase
   const [exerciseResult, angleResult, masterPromptResult] = await Promise.all([
-    supabase.from('exercises').select('name, base_technique').eq('id', exercise_id).single(),
+    supabase.from('exercises').select('name, base_technique, equipment, muscle_groups, movement_pattern, technique_cues').eq('id', exercise_id).single(),
     supabase.from('camera_angles').select('name, prompt_modifier').eq('id', angle_id).single(),
     supabase.from('config').select('value').eq('key', 'master_prompt').single(),
   ]);
@@ -81,7 +81,7 @@ export async function startGeneration(req: Request, res: Response): Promise<void
 
 async function runPipeline(params: {
   generationId: string;
-  exercise: { name: string; base_technique: string };
+  exercise: { name: string; base_technique: string; equipment: string | null; muscle_groups: string[] | null; movement_pattern: string | null; technique_cues: string[] | null };
   angle: { name: string; prompt_modifier: string };
   userObservations: string;
   masterPrompt: string;
@@ -97,6 +97,10 @@ async function runPipeline(params: {
     const { imagePrompt, videoPrompt } = await buildDualPrompts({
       exerciseName: exercise.name,
       baseTechnique: exercise.base_technique,
+      equipment: exercise.equipment ?? 'Barra',
+      muscleGroups: exercise.muscle_groups ?? [],
+      movementPattern: exercise.movement_pattern ?? '',
+      techniqueCues: exercise.technique_cues ?? [],
       cameraAngle: angle.name,
       cameraModifier: angle.prompt_modifier,
       userObservations,
