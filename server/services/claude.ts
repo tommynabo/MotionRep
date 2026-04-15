@@ -138,8 +138,16 @@ Generate the dual prompts now following the Jeff Nippard Clinical Standard.`;
     throw new Error('Claude JSON missing required "image_prompt" or "video_prompt" keys');
   }
 
+  const MAX_PROMPT_LENGTH = 3000;
+  const imagePrompt = parsed.image_prompt.length > MAX_PROMPT_LENGTH
+    ? parsed.image_prompt.slice(0, MAX_PROMPT_LENGTH)
+    : parsed.image_prompt;
+  const videoPrompt = parsed.video_prompt.length > MAX_PROMPT_LENGTH
+    ? parsed.video_prompt.slice(0, MAX_PROMPT_LENGTH)
+    : parsed.video_prompt;
+
   return {
-    imagePrompt: parsed.image_prompt,
-    videoPrompt: parsed.video_prompt,
+    imagePrompt,
+    videoPrompt,
   };
 }
