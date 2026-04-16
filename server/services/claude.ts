@@ -106,6 +106,15 @@ RULE 9 — FULL BODY FRAMING IN VIDEO (mandatory, always):
 In the video_prompt, after the static camera header, explicitly reinforce:
 "FULL BODY FRAMING LOCKED: The camera is positioned at 7-8 metres from the subject, equivalent to a 24mm wide-angle shot. The athlete's full body including fully extended arms is visible with generous margin at all sides throughout the entire video. The subject occupies approximately 50% of the frame height, centred. ABSOLUTE PROHIBITION: no zoom in, no crop, no reframing during movement. Feet, knees, hands and head must remain fully in frame during every phase of the repetition, including at maximum arm extension."
 
+RULE 10 — EXERCISE MOTION ANCHOR (highest priority, non-negotiable):
+The movement in BOTH the image and video MUST PRECISELY match the exact exercise named in the user message. The exercise name is the absolute ground truth.
+ABSOLUTE PROHIBITION: generating any movement pattern that does not correspond to the named exercise is FORBIDDEN and makes the entire generation invalid.
+Examples of violations that must NEVER occur:
+- Exercise is "Cable Lateral Raise" → generating a crossover, row, or any other cable movement is FORBIDDEN
+- Exercise is "Sentadilla con Barra Libre" → generating a lunge, deadlift, or any other lower-body movement is FORBIDDEN
+- Exercise is "Rope Facepull" → generating a cable row or any pulling movement that is not a face pull is FORBIDDEN
+The equipment type AND the exercise name together define the EXACT and ONLY movement permitted. If in doubt, describe the movement joint-by-joint to ensure it matches precisely.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IMAGE PROMPT CONSTRUCTION GUIDE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -128,7 +137,7 @@ VIDEO PROMPT CONSTRUCTION GUIDE
 Build the "video_prompt" string in this order:
 1. Static camera header (RULE 5 — insert verbatim)
 2. Full body framing lock (RULE 9 — insert verbatim, immediately after the static camera header)
-3. Motion description: full ROM cycle from the start position through peak contraction and back to start. Name every joint involved in the movement.
+3. Motion description (RULE 10 — MUST match the exact exercise named): full ROM cycle of "${exerciseName}" from start position through peak contraction and back to start. Name every joint involved and confirm the movement pattern matches this specific exercise precisely.
 4. Tempo: specify concentric phase duration, peak hold, eccentric phase duration (e.g., "2s concentric, 1s peak hold, 3s eccentric").
 5. Movement quality (RULE 5): "steady, biomechanically perfect, absolutely no swinging or momentum. Exactly 2 continuous repetitions."
 6. Cable physics (RULE 8, only if cable/pulley exercise): describe that the cable remains taut and connected throughout the full ROM, changing angle in sync with the athlete's movement.
@@ -147,7 +156,8 @@ Coach observations: ${userObservations || 'None — use standard perfect form'}
 Shorts logo reference (white brand logo on outer left thigh of black shorts): ${shortsLogoUrl || 'not provided — use a generic white logo badge'}
 Style/environment supplementary reference: ${masterPromptTemplate}
 
-Generate the dual prompts now following the Jeff Nippard Clinical Standard. Pay special attention to RULE 3 (grip/implement) and apply the correct variant for the equipment type "${equipment}". If equipment involves cables or pulleys, enforce RULE 8 fully.`;
+Generate the dual prompts now following the Jeff Nippard Clinical Standard. Pay special attention to RULE 3 (grip/implement) and apply the correct variant for the equipment type "${equipment}". If equipment involves cables or pulleys, enforce RULE 8 fully.
+⚠️ CRITICAL — RULE 10: The ONLY movement generated in both image and video must be the exact exercise "${exerciseName}". Any other movement pattern is a hard failure. Describe the motion joint-by-joint to guarantee it matches this exercise precisely.`;
 
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',

@@ -5,6 +5,7 @@ export async function listAngles(req: Request, res: Response): Promise<void> {
   const { data, error } = await supabase
     .from('camera_angles')
     .select('id, name, prompt_modifier')
+    .eq('is_active', true)
     .order('name');
 
   if (error) {
