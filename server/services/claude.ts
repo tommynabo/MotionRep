@@ -101,7 +101,7 @@ If the exercise uses a cable machine, you MUST:
 
 RULE 9 — FULL BODY FRAMING IN VIDEO (mandatory, always):
 In the video_prompt, after the static camera header, explicitly reinforce:
-"FULL BODY FRAMING LOCKED: The camera captures the athlete from head to feet throughout the entire video. ABSOLUTE PROHIBITION: no zoom in, no crop, no reframing during movement. Feet, knees, and head must remain fully in frame during every phase of the repetition."
+"FULL BODY FRAMING LOCKED: The camera is positioned at 4-5 metres from the subject, equivalent to a 35mm lens wide shot. The athlete's full body from head to feet is visible with comfortable margin at top and bottom throughout the entire video. The subject occupies 70-80% of the frame height. ABSOLUTE PROHIBITION: no zoom in, no crop, no reframing during movement. Feet, knees, and head must remain fully in frame during every phase of the repetition."
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IMAGE PROMPT CONSTRUCTION GUIDE
