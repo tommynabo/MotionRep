@@ -143,7 +143,7 @@ export async function generateImageFromReference(
 
 /**
  * Animate an image using Kling 2.6 (image-to-video).
- * Accepts a structured VideoPromptJson to drive movement fidelity.
+ * Fallback used when no reference video is configured.
  * Returns the URL of the generated video.
  */
 export async function generateVideo(
@@ -170,6 +170,42 @@ export async function generateVideo(
   const videoUrl = urls[0];
   if (!videoUrl) {
     throw new Error('KIE Kling did not return a video URL');
+  }
+  return videoUrl;
+}
+
+/**
+ * Animate an image using Kling 3.0 motion-control (image + reference video).
+ * The reference video drives the biomechanical movement frame-by-frame.
+ * The generated image provides the subject appearance and background.
+ * Returns the URL of the generated video.
+ */
+export async function generateVideoMotionControl(
+  imageUrl: string,
+  referenceVideoUrl: string,
+  promptText: string,
+): Promise<string> {
+  // Kling 3.0 motion-control allows up to 2500 chars for the prompt
+  const safePrompt = promptText.length > 2500 ? promptText.slice(0, 2500) : promptText;
+
+  const taskId = await createTask({
+    model: 'kling-3.0/motion-control',
+    input: {
+      prompt: safePrompt,
+      input_urls: [imageUrl],
+      video_urls: [referenceVideoUrl],
+      mode: '1080p',
+      character_orientation: 'video',
+      // Use the generated image as background source (white studio backdrop),
+      // not the reference video background (real gym environment).
+      background_source: 'input_image',
+    },
+  });
+
+  const urls = await pollTask(taskId);
+  const videoUrl = urls[0];
+  if (!videoUrl) {
+    throw new Error('KIE Kling 3.0 motion-control did not return a video URL');
   }
   return videoUrl;
 }

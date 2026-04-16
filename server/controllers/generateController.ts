@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { waitUntil } from '@vercel/functions';
 import { supabase } from '../lib/supabase.js';
 import { buildDualPrompts } from '../services/claude.js';
-import { generateImageFromReference, generateVideo } from '../services/kie.js';
+import { generateImageFromReference, generateVideo, generateVideoMotionControl } from '../services/kie.js';
 
 export async function startGeneration(req: Request, res: Response): Promise<void> {
   const { exercise_id, angle_id, user_observations } = req.body as {
@@ -20,12 +20,13 @@ export async function startGeneration(req: Request, res: Response): Promise<void
   const REFERENCE_MODEL_IMAGE_URL =
     'https://res.cloudinary.com/dq9mlk8x3/image/upload/v1776327685/20206424-handsome-young-muscular-sports-man-on-gray-background_ahrecm.jpg';
 
-  // Fetch exercise, angle, master prompt, and shorts logo from Supabase
-  const [exerciseResult, angleResult, masterPromptResult, shortsLogoResult] = await Promise.all([
+  // Fetch exercise, angle, master prompt, shorts logo, and optional motion-control reference video
+  const [exerciseResult, angleResult, masterPromptResult, shortsLogoResult, referenceVideoResult] = await Promise.all([
     supabase.from('exercises').select('name, base_technique, equipment, muscle_groups, movement_pattern, technique_cues').eq('id', exercise_id).single(),
     supabase.from('camera_angles').select('name, prompt_modifier').eq('id', angle_id).single(),
     supabase.from('config').select('value').eq('key', 'master_prompt').single(),
     supabase.from('config').select('value').eq('key', 'shorts_logo_url').single(),
+    supabase.from('config').select('value').eq('key', 'reference_video_url').single(),
   ]);
 
   if (exerciseResult.error || !exerciseResult.data) {
@@ -42,6 +43,9 @@ export async function startGeneration(req: Request, res: Response): Promise<void
   const masterPrompt = masterPromptResult.data?.value ?? '';
   const shortsLogoUrl = shortsLogoResult.data?.value ?? '';
   const referenceImageUrl = REFERENCE_MODEL_IMAGE_URL;
+  // If a reference video URL is configured, Kling 3.0 motion-control will be used.
+  // If empty or not set, the pipeline falls back to Kling 2.6 image-to-video.
+  const referenceVideoUrl = referenceVideoResult.data?.value ?? '';
 
   // Create the generation record with status 'pending'
   const { data: generation, error: insertError } = await supabase
@@ -75,8 +79,7 @@ export async function startGeneration(req: Request, res: Response): Promise<void
       userObservations: user_observations ?? '',
       masterPrompt,
       shortsLogoUrl,
-      referenceImageUrl,
-    }).catch((err) => {
+      referenceImageUrl,      referenceVideoUrl,    }).catch((err) => {
       console.error(`[Pipeline] Unhandled error for generation ${generationId}:`, err);
     }),
   );
@@ -90,8 +93,9 @@ async function runPipeline(params: {
   masterPrompt: string;
   shortsLogoUrl: string;
   referenceImageUrl: string;
+  referenceVideoUrl: string;
 }): Promise<void> {
-  const { generationId, exercise, angle, userObservations, masterPrompt, shortsLogoUrl, referenceImageUrl } = params;
+  const { generationId, exercise, angle, userObservations, masterPrompt, shortsLogoUrl, referenceImageUrl, referenceVideoUrl } = params;
 
   try {
     // STEP A: Build dual JSON prompts with Claude
@@ -128,10 +132,17 @@ async function runPipeline(params: {
       .update({ image_url: imageUrl, status: 'image_done' })
       .eq('id', generationId);
 
-    // STEP C: Generate video with Kling 2.6
-    console.log(`[Pipeline ${generationId}] Step C: Generating video with Kling 2.6...`);
+    // STEP C: Generate video — Kling 3.0 motion-control if reference video configured, else Kling 2.6
+    const usingMotionControl = referenceVideoUrl.trim().length > 0;
+    if (usingMotionControl) {
+      console.log(`[Pipeline ${generationId}] Step C: Generating video with Kling 3.0 motion-control (reference video: ${referenceVideoUrl})...`);
+    } else {
+      console.log(`[Pipeline ${generationId}] Step C: Generating video with Kling 2.6 (no reference video configured)...`);
+    }
     await supabase.from('generations').update({ status: 'animating' }).eq('id', generationId);
-    const videoUrl = await generateVideo(imageUrl, videoPrompt);
+    const videoUrl = usingMotionControl
+      ? await generateVideoMotionControl(imageUrl, referenceVideoUrl, videoPrompt)
+      : await generateVideo(imageUrl, videoPrompt);
 
     await supabase
       .from('generations')
