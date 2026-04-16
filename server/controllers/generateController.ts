@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { waitUntil } from '@vercel/functions';
 import { supabase } from '../lib/supabase.js';
 import { buildDualPrompts } from '../services/claude.js';
-import { generateImageFromReference, generateVideoKling3, generateVideoMotionControl } from '../services/kie.js';
+import { generateImageFromReference, generateVideoMotionControl, startVideoKling3Task, checkKlingTask } from '../services/kie.js';
 
 export async function startGeneration(req: Request, res: Response): Promise<void> {
   const { exercise_id, angle_id, user_observations } = req.body as {
@@ -132,24 +132,30 @@ async function runPipeline(params: {
       .update({ image_url: imageUrl, status: 'image_done' })
       .eq('id', generationId);
 
-    // STEP C: Generate video — Kling 3.0 motion-control if reference video configured, else Kling 2.6
+    // STEP C: Start video task — fire and return immediately (no blocking poll).
+    // Kling 3.0 pro 10s takes 5-15 minutes; Vercel maxDuration is 300s.
+    // We store the task ID and let getGenerationStatus promote the status inline.
     const usingMotionControl = referenceVideoUrl.trim().length > 0;
     if (usingMotionControl) {
-      console.log(`[Pipeline ${generationId}] Step C: Generating video with Kling 3.0 motion-control (reference video: ${referenceVideoUrl})...`);
+      console.log(`[Pipeline ${generationId}] Step C: Starting Kling 3.0 motion-control task (reference: ${referenceVideoUrl})...`);
+      // Motion-control still polls synchronously (reference video + image = fast path).
+      await supabase.from('generations').update({ status: 'animating' }).eq('id', generationId);
+      const videoUrl = await generateVideoMotionControl(imageUrl, referenceVideoUrl, videoPrompt);
+      await supabase
+        .from('generations')
+        .update({ video_url: videoUrl, status: 'completed' })
+        .eq('id', generationId);
+      console.log(`[Pipeline ${generationId}] Motion-control completed.`);
     } else {
-      console.log(`[Pipeline ${generationId}] Step C: Generating video with Kling 3.0 pro 1080p 10s (no reference video)...`);
+      console.log(`[Pipeline ${generationId}] Step C: Launching Kling 3.0 pro task (non-blocking)...`);
+      const kieTaskId = await startVideoKling3Task(imageUrl, videoPrompt);
+      await supabase
+        .from('generations')
+        .update({ status: 'animating', kie_video_task_id: kieTaskId })
+        .eq('id', generationId);
+      // Pipeline exits here. getGenerationStatus will promote to 'completed' when KIE reports success.
+      console.log(`[Pipeline ${generationId}] Kling task launched: ${kieTaskId}. Polling deferred to status endpoint.`);
     }
-    await supabase.from('generations').update({ status: 'animating' }).eq('id', generationId);
-    const videoUrl = usingMotionControl
-      ? await generateVideoMotionControl(imageUrl, referenceVideoUrl, videoPrompt)
-      : await generateVideoKling3(imageUrl, videoPrompt);
-
-    await supabase
-      .from('generations')
-      .update({ video_url: videoUrl, status: 'completed' })
-      .eq('id', generationId);
-
-    console.log(`[Pipeline ${generationId}] Completed successfully.`);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error(`[Pipeline ${generationId}] Failed:`, message);
@@ -165,7 +171,7 @@ export async function getGenerationStatus(req: Request, res: Response): Promise<
 
   const { data, error } = await supabase
     .from('generations')
-    .select('id, status, image_url, video_url, error_message, final_prompt_used, created_at')
+    .select('id, status, image_url, video_url, error_message, final_prompt_used, created_at, kie_video_task_id')
     .eq('id', id)
     .single();
 
@@ -174,5 +180,32 @@ export async function getGenerationStatus(req: Request, res: Response): Promise<
     return;
   }
 
-  res.json(data);
+  // Inline status promotion: if animating and we have a KIE task ID, check it now.
+  // This makes the status endpoint self-healing — no background worker needed.
+  if (data.status === 'animating' && data.kie_video_task_id) {
+    const check = await checkKlingTask(data.kie_video_task_id).catch(() => ({ state: 'pending' as const }));
+
+    if (check.state === 'success') {
+      await supabase
+        .from('generations')
+        .update({ video_url: check.url, status: 'completed', kie_video_task_id: null })
+        .eq('id', id);
+      res.json({ ...data, video_url: check.url, status: 'completed', kie_video_task_id: null });
+      return;
+    }
+
+    if (check.state === 'fail') {
+      await supabase
+        .from('generations')
+        .update({ status: 'failed', error_message: check.error, kie_video_task_id: null })
+        .eq('id', id);
+      res.json({ ...data, status: 'failed', error_message: check.error, kie_video_task_id: null });
+      return;
+    }
+    // state === 'pending' → return current data, client will poll again in 4 seconds
+  }
+
+  // Strip internal field from client response
+  const { kie_video_task_id: _internal, ...clientData } = data;
+  res.json(clientData);
 }

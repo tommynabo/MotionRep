@@ -240,3 +240,67 @@ export async function generateVideoMotionControl(
   }
   return videoUrl;
 }
+
+/**
+ * Start a Kling 3.0 video task WITHOUT polling.
+ * Returns the KIE task ID immediately so the caller can store it and return.
+ * Used by the pipeline to avoid blocking the Vercel function beyond its time limit.
+ */
+export async function startVideoKling3Task(
+  imageUrl: string,
+  promptText: string,
+): Promise<string> {
+  const safePrompt = promptText.length > 2500 ? promptText.slice(0, 2500) : promptText;
+  return await createTask({
+    model: 'kling-3.0/video',
+    input: {
+      image_urls: [imageUrl],
+      prompt: safePrompt,
+      sound: false,
+      duration: '10',
+      aspect_ratio: '9:16',
+      mode: 'pro',
+      multi_shots: false,
+    },
+  });
+}
+
+/**
+ * Check a Kling video task once (no loop).
+ * Returns the current state so the status endpoint can promote the DB record inline.
+ */
+export async function checkKlingTask(taskId: string): Promise<
+  | { state: 'pending' }
+  | { state: 'success'; url: string }
+  | { state: 'fail'; error: string }
+> {
+  const res = await fetch(
+    `${KIE_API_BASE}/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`,
+    { headers: { Authorization: `Bearer ${process.env.KIE_KEY ?? ''}` } },
+  );
+  const json = (await res.json()) as {
+    code: number;
+    msg: string;
+    data: { state: string; resultJson?: string; failMsg?: string };
+  };
+
+  if (json.code !== 200) {
+    return { state: 'fail', error: `KIE error ${json.code}: ${json.msg}` };
+  }
+
+  const { state, resultJson, failMsg } = json.data;
+
+  if (state === 'success') {
+    const result = JSON.parse(resultJson!) as { resultUrls: string[] };
+    const url = result.resultUrls?.[0];
+    if (!url) return { state: 'fail', error: 'KIE returned success but no resultUrls' };
+    return { state: 'success', url };
+  }
+
+  if (state === 'fail') {
+    return { state: 'fail', error: failMsg ?? 'unknown KIE error' };
+  }
+
+  // 'waiting' | 'queuing' | 'generating'
+  return { state: 'pending' };
+}
