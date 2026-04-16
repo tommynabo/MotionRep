@@ -26,9 +26,10 @@ export async function buildDualPrompts(params: {
   cameraAngle: string;
   cameraModifier: string;
   userObservations: string;
+  shortsLogoUrl: string;
   masterPromptTemplate: string;
 }): Promise<DualPrompts> {
-  const { exerciseName, baseTechnique, equipment, muscleGroups, movementPattern, techniqueCues, cameraAngle, cameraModifier, userObservations, masterPromptTemplate } = params;
+  const { exerciseName, baseTechnique, equipment, muscleGroups, movementPattern, techniqueCues, cameraAngle, cameraModifier, userObservations, shortsLogoUrl, masterPromptTemplate } = params;
 
   const systemMessage = `You are an expert Biomechanics Coach and Master AI Prompt Engineer for fitness video generation.
 Your task is to generate two complete, ready-to-send prompt strings following the "Jeff Nippard Clinical Standard".
@@ -53,7 +54,7 @@ The background must ALWAYS be described as:
 
 RULE 2 — THE SUBJECT:
 The subject must ALWAYS be described as:
-"An athletic, lean 30-year-old man with a naturally defined muscular physique. He is shirtless to clearly display muscle activation and wearing dark gym shorts."
+"An athletic, lean 30-year-old man with a naturally defined muscular physique. He is shirtless to clearly display muscle activation and wearing solid black athletic shorts. The shorts have a small white brand logo printed on the outer left thigh — the logo is clearly visible and precisely on the left leg only."
 Preserve exact facial identity, facial structure, skin tone and hair from the provided reference image throughout. Do NOT alter or regenerate the face.
 
 RULE 3 — ANATOMY AND GRIP PRECAUTIONS (Equipment-aware, Critical):
@@ -92,7 +93,7 @@ For cable/pulley exercises: describe the cable attachment's 3D position relative
 
 RULE 7 — FULL BODY FRAMING (mandatory, always):
 Every image_prompt MUST end with this exact framing instruction:
-"FULL BODY SHOT: The subject's entire body must be visible from head to feet with comfortable margin at top and bottom. Wide shot equivalent to a 35mm lens at 4-5 metres distance. The subject occupies 70-80% of the frame height. ABSOLUTE PROHIBITION: no cropping of feet, knees, hands or head. The complete body silhouette must be visible within the frame at all times."
+"FULL BODY SHOT: The subject's entire body must be visible from head to feet with generous margin at top and bottom. Wide shot equivalent to a 24mm wide-angle lens at 7-8 metres distance. The subject occupies approximately 50% of the frame height, centred in frame. ABSOLUTE PROHIBITION: no cropping of feet, knees, hands, arms or head under any circumstance. The complete body silhouette including fully extended arms must be visible within the frame at all times."
 
 RULE 8 — CABLE & PULLEY MACHINE VISUAL ANCHORING (mandatory when equipment is Cable or Polea):
 If the exercise uses a cable machine, you MUST:
@@ -103,7 +104,7 @@ If the exercise uses a cable machine, you MUST:
 
 RULE 9 — FULL BODY FRAMING IN VIDEO (mandatory, always):
 In the video_prompt, after the static camera header, explicitly reinforce:
-"FULL BODY FRAMING LOCKED: The camera is positioned at 4-5 metres from the subject, equivalent to a 35mm lens wide shot. The athlete's full body from head to feet is visible with comfortable margin at top and bottom throughout the entire video. The subject occupies 70-80% of the frame height. ABSOLUTE PROHIBITION: no zoom in, no crop, no reframing during movement. Feet, knees, and head must remain fully in frame during every phase of the repetition."
+"FULL BODY FRAMING LOCKED: The camera is positioned at 7-8 metres from the subject, equivalent to a 24mm wide-angle shot. The athlete's full body including fully extended arms is visible with generous margin at all sides throughout the entire video. The subject occupies approximately 50% of the frame height, centred. ABSOLUTE PROHIBITION: no zoom in, no crop, no reframing during movement. Feet, knees, hands and head must remain fully in frame during every phase of the repetition, including at maximum arm extension."
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IMAGE PROMPT CONSTRUCTION GUIDE
@@ -143,6 +144,7 @@ Correct technique (biomechanics reference): ${baseTechnique}
 Camera angle name: ${cameraAngle}
 Camera angle instruction (insert verbatim into image_prompt): ${cameraModifier}
 Coach observations: ${userObservations || 'None — use standard perfect form'}
+Shorts logo reference (white brand logo on outer left thigh of black shorts): ${shortsLogoUrl || 'not provided — use a generic white logo badge'}
 Style/environment supplementary reference: ${masterPromptTemplate}
 
 Generate the dual prompts now following the Jeff Nippard Clinical Standard. Pay special attention to RULE 3 (grip/implement) and apply the correct variant for the equipment type "${equipment}". If equipment involves cables or pulleys, enforce RULE 8 fully.`;
