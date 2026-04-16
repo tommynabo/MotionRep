@@ -142,8 +142,39 @@ export async function generateImageFromReference(
 }
 
 /**
+ * Animate an image using Kling 3.0 standard (image-to-video), pro 1080p 10s.
+ * Primary video generation path — no reference video required.
+ * Returns the URL of the generated video.
+ */
+export async function generateVideoKling3(
+  imageUrl: string,
+  promptText: string,
+): Promise<string> {
+  const safePrompt = promptText.length > 2500 ? promptText.slice(0, 2500) : promptText;
+
+  const taskId = await createTask({
+    model: 'kling-3.0/video',
+    input: {
+      image_urls: [imageUrl],
+      prompt: safePrompt,
+      sound: false,
+      duration: '10',
+      aspect_ratio: '9:16',
+      mode: 'pro',
+      multi_shots: false,
+    },
+  });
+
+  const urls = await pollTask(taskId);
+  if (!urls[0]) {
+    throw new Error('KIE Kling 3.0 did not return a video URL');
+  }
+  return urls[0];
+}
+
+/**
  * Animate an image using Kling 2.6 (image-to-video).
- * Fallback used when no reference video is configured.
+ * Legacy fallback — kept for reference. Use generateVideoKling3 instead.
  * Returns the URL of the generated video.
  */
 export async function generateVideo(

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { waitUntil } from '@vercel/functions';
 import { supabase } from '../lib/supabase.js';
 import { buildDualPrompts } from '../services/claude.js';
-import { generateImageFromReference, generateVideo, generateVideoMotionControl } from '../services/kie.js';
+import { generateImageFromReference, generateVideoKling3, generateVideoMotionControl } from '../services/kie.js';
 
 export async function startGeneration(req: Request, res: Response): Promise<void> {
   const { exercise_id, angle_id, user_observations } = req.body as {
@@ -137,12 +137,12 @@ async function runPipeline(params: {
     if (usingMotionControl) {
       console.log(`[Pipeline ${generationId}] Step C: Generating video with Kling 3.0 motion-control (reference video: ${referenceVideoUrl})...`);
     } else {
-      console.log(`[Pipeline ${generationId}] Step C: Generating video with Kling 2.6 (no reference video configured)...`);
+      console.log(`[Pipeline ${generationId}] Step C: Generating video with Kling 3.0 pro 1080p 10s (no reference video)...`);
     }
     await supabase.from('generations').update({ status: 'animating' }).eq('id', generationId);
     const videoUrl = usingMotionControl
       ? await generateVideoMotionControl(imageUrl, referenceVideoUrl, videoPrompt)
-      : await generateVideo(imageUrl, videoPrompt);
+      : await generateVideoKling3(imageUrl, videoPrompt);
 
     await supabase
       .from('generations')
