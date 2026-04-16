@@ -266,8 +266,31 @@ export async function startVideoKling3Task(
 }
 
 /**
+ * Start a Seedance 1.0 Pro video task WITHOUT polling.
+ * Seedance has superior cable/rope physics simulation compared to Kling 3.0 vanilla.
+ * Uses the same KIE /jobs/createTask and /jobs/recordInfo endpoints as Kling.
+ * Returns the KIE task ID immediately — check with checkKlingTask().
+ */
+export async function startSeedanceTask(
+  imageUrl: string,
+  promptText: string,
+): Promise<string> {
+  const safePrompt = promptText.length > 2500 ? promptText.slice(0, 2500) : promptText;
+  return await createTask({
+    model: 'seedance-1.0-pro/image-to-video',
+    input: {
+      image_url: imageUrl,
+      prompt: safePrompt,
+      duration: 5,
+      aspect_ratio: '9:16',
+    },
+  });
+}
+
+/**
  * Check a Kling video task once (no loop).
  * Returns the current state so the status endpoint can promote the DB record inline.
+ * Also works for Seedance tasks — both use the same /jobs/recordInfo endpoint.
  */
 export async function checkKlingTask(taskId: string): Promise<
   | { state: 'pending' }

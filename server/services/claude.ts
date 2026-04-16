@@ -67,7 +67,7 @@ The equipment type for this exercise is provided in the user message. You MUST a
 
 - If equipment is "Mancuernas" (dumbbells): "Both hands grip their respective dumbbell handles firmly. Realistic five fingers wrapped around each dumbbell handle. Knuckles facing outward, thumbs locked under the fingers. The dumbbell handle does NOT blend or fuse with the palm. No extra fingers, no fused fingers. The hexagonal dumbbell head is clearly distinct from the hand."
 
-- If equipment is "Cable" or "Polea" (cable machine): "The athlete's hands grip the cable attachment (D-ring / straight bar / rope) firmly. Realistic five fingers curled around the handle, thumbs secured. The cable runs visibly and continuously taut from the pulley overhead or behind to the attachment in the hands — the cable is NOT floating, NOT disconnected, NOT disappearing into the wrist. The cable machine stack and pulley housing are clearly visible in the background, establishing the physical connection."
+- If equipment is "Cable" or "Polea" (cable machine): "The athlete's hands grip the cable attachment (D-ring / straight bar / rope) firmly. Realistic five fingers curled around the handle, thumbs secured. CABLE GEOMETRY — CRITICAL: Each cable forms a straight taut line from its fixed pulley wheel (top of the upright column visible in the background) to the handle in the athlete's hand. The cable angle relative to the body changes with the athlete's arm position — it is NOT a vertical drop, NOT a horizontal line, but a diagonal that follows the actual pulley-to-hand vector. The steel cable is a single unbroken continuous line — it does NOT float, does NOT disappear into the wrist, does NOT blend with the forearm or skin. The cable machine stack, shroud, and pulley housing are clearly visible anchoring the cable's origin point in the background. CABLE MACHINE FRAME: Both upright columns are visible on the left and right sides of the frame — the cable travels from the high pulley wheel at the top of each column diagonally inward to the athlete's hands."
 
 - If equipment is "Máquina" (machine): \"The athlete's hands grip the machine handles firmly. Realistic five fingers wrapped around each handle, thumbs locked. The handle is a rigid padded lever or bar — it does NOT blend or fuse with the palm. The machine frame, seat, and pad/lever arm are clearly visible, establishing the athlete is using a fixed-path resistance machine. No floating handles, no disconnected contact points.\"\n\n- If equipment is "Peso corporal" (bodyweight): Describe the contact points (hands on floor, feet, etc.) with precise anatomical detail. Skip implement grip unless the exercise involves apparatus (pull-up bar, dip bars, etc.).
 
@@ -101,10 +101,11 @@ Every image_prompt MUST end with this exact framing instruction:
 
 RULE 8 — CABLE & PULLEY MACHINE VISUAL ANCHORING (mandatory when equipment is Cable or Polea):
 If the exercise uses a cable machine, you MUST:
-1. Describe the cable machine visible in the background (weight stack, shroud, upright column, pulley wheel at top or bottom).
-2. Show the cable as a continuous taut line from the pulley down to the attachment in the athlete's hands. Use language like: "A steel cable runs in a straight taut line from the overhead pulley down to the D-ring handle gripped in both hands — the cable is under constant tension and clearly connected at both ends."
-3. In the video_prompt, reinforce that the cable remains taut and physically connected throughout the full range of motion: during the concentric phase the cable angle changes as the hands move, during the eccentric the cable elongates back toward the pulley — it is NEVER slack, NEVER floating, NEVER disconnected.
-4. ABSOLUTE PROHIBITION: generating the athlete performing the movement with hands empty, floating handles, or no visible cable connection is FORBIDDEN.
+1. Describe the cable machine visible in the background: both upright columns (left and right), the pulley wheel at the top of each column, and the weight stack partially visible. The machine is a fixed steel structure that does not move.
+2. Show each cable as a single, continuous, taut steel line from its pulley wheel diagonally to the attachment in the athlete's hand. Use language like: "A steel cable runs in a straight taut diagonal from the overhead pulley at the top of the left column to the D-ring handle gripped in the right hand, and a mirrored cable from the right column pulley to the left hand — both cables are under constant tension with no slack."
+3. Cable angle physics: the angle of each cable from the pulley to the hand depends on the athlete's arm position. At the starting position (arms extended), cables are nearly horizontal. At the contracted position (hands close together), cables are diagonal. These angles must be geometrically consistent with the pulley positions described.
+4. In the video_prompt, reinforce cable continuity across every frame: "The steel cables remain taut and physically connected throughout the entire range of motion. During the concentric phase, the cable angles smoothly and continuously change as the hands move — the cables do NOT jump, teleport, or suddenly change angle. During the eccentric phase, the cables smoothly return to their original angles. The cable angle at any frame is strictly determined by the geometric vector from the fixed pulley to the hand position in that frame. ABSOLUTE PROHIBITION: no slack cable, no floating cable, no cable disconnecting from the handle or the pulley, no cable blending with skin."
+5. ABSOLUTE PROHIBITION: generating the athlete performing the movement with hands empty, floating handles, or no visible cable connection is FORBIDDEN.
 
 RULE 9 — FULL BODY FRAMING IN VIDEO (mandatory, always):
 In the video_prompt, after the static camera header, explicitly reinforce:
@@ -118,6 +119,16 @@ Examples of violations that must NEVER occur:
 - Exercise is "Sentadilla con Barra Libre" → generating a lunge, deadlift, or any other lower-body movement is FORBIDDEN
 - Exercise is "Rope Facepull" → generating a cable row or any pulling movement that is not a face pull is FORBIDDEN
 The equipment type AND the exercise name together define the EXACT and ONLY movement permitted. If in doubt, describe the movement joint-by-joint to ensure it matches precisely.
+
+RULE 11 — CABLE MOTION CONTINUITY IN VIDEO (mandatory when equipment is Cable or Polea):
+This rule applies only to cable/pulley exercises and must be fully embedded in the video_prompt.
+The cable is a rigid physical constraint — its path at every frame is a straight line from the fixed pulley anchor to the current hand position. This means:
+- CONCENTRIC PHASE: as the hands move away from each other (or toward the body, depending on exercise), the cable becomes more taut and the angle at the pulley decreases. Every intermediate frame must show a geometrically consistent cable angle for that exact hand position.
+- ECCENTRIC PHASE: as the hands return to the starting position, the cable angle continuously and smoothly reverses — it does NOT snap back or teleport. The motion of the cable is the mathematical inverse of the concentric phase.
+- TEMPO CONSISTENCY: the cable must move at the same speed as the hands — no cable lag, no cable overshoot. The cable movement and hand movement are perfectly synchronized because they are physically the same object.
+- BILATERAL SYMMETRY: for bilateral cable exercises (two cables, two hands), both cables must be mirror images of each other at all times. If the left hand cable forms angle X at the pulley, the right hand cable forms the mirror angle X.
+You MUST include this language verbatim in the video_prompt cable section:
+"CABLE PHYSICS LOCK: The cables are rigid physical constraints — their path at every frame is a straight taut diagonal from the fixed pulley wheel to the current hand position. Cable angles change smoothly and continuously with hand position — ZERO jumps, ZERO teleporting, ZERO slack. Bilateral cables are perfectly mirrored. Cable moves precisely with the hands — no lag, no overshoot."
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IMAGE PROMPT CONSTRUCTION GUIDE
@@ -144,7 +155,7 @@ Build the "video_prompt" string in this order:
 3. Motion description (RULE 10 — MUST match the exact exercise named): full ROM cycle of "${exerciseName}" from start position through peak contraction and back to start. Name every joint involved and confirm the movement pattern matches this specific exercise precisely.
 4. Tempo: use EXACTLY "2s eccentric lowering, 0.5s pause at bottom, 1.5s concentric drive, 0.5s lockout hold" per repetition (4.5s/rep × 2 reps = 9s total — fits within the 10s video).
 5. Movement quality (RULE 5): "steady, biomechanically perfect, absolutely no swinging or momentum. Exactly 2 continuous repetitions."
-6. Cable physics (RULE 8, only if cable/pulley exercise): describe that the cable remains taut and connected throughout the full ROM, changing angle in sync with the athlete's movement.
+6. Cable physics (RULE 8 + RULE 11, only if cable/pulley exercise): describe the cable as a physically constrained taut diagonal that changes angle smoothly with hand position. Embed the CABLE PHYSICS LOCK verbatim. Reinforce: cables are taut throughout entire ROM, angle changes are continuous and geometrically consistent with pulley positions, bilateral cables are always mirrored.
 7. Physics: describe visible physical effects — weight inertia, muscle belly deformation at contraction, tendon stretch at full extension, realistic implement arc.
 8. Background lock (RULE 1): insert verbatim — "BACKGROUND ABSOLUTE LOCK: Pure white seamless background throughout every single frame. The background does NOT change at any point during the movement. No environmental elements, no grey tones, no floor texture, no colour shift. Clinically clean white studio backdrop maintained 100% of the video duration."
 9. Identity consistency: "Preserve exact facial features, skin tone, hair and overall body identity from the input reference frame throughout every frame of the video. No face morphing, no identity drift."`;
@@ -162,7 +173,7 @@ Shorts logo visual description (use this VERBATIM in the image_prompt for the ou
 Shorts logo image reference URL (do NOT pass to Flux — for your context only): ${shortsLogoUrl || 'not provided'}
 Style/environment supplementary reference: ${masterPromptTemplate}
 
-Generate the dual prompts now following the Jeff Nippard Clinical Standard. Pay special attention to RULE 3 (grip/implement) and apply the correct variant for the equipment type "${equipment}". If equipment involves cables or pulleys, enforce RULE 8 fully.
+Generate the dual prompts now following the Jeff Nippard Clinical Standard. Pay special attention to RULE 3 (grip/implement) and apply the correct variant for the equipment type "${equipment}". If equipment involves cables or pulleys, enforce RULE 8 and RULE 11 fully — cable geometry must be physically accurate, continuously deforming, and bilaterally symmetric throughout the video.
 ⚠️ CRITICAL — RULE 10: The ONLY movement generated in both image and video must be the exact exercise "${exerciseName}". Any other movement pattern is a hard failure. Describe the motion joint-by-joint to guarantee it matches this exercise precisely.`;
 
   const message = await anthropic.messages.create({

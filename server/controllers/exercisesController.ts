@@ -6,7 +6,7 @@ export async function listExercises(req: Request, res: Response): Promise<void> 
 
   let query = supabase
     .from('exercises')
-    .select('id, name, category, base_technique')
+    .select('id, name, category, base_technique, equipment, reference_video_url')
     .order('name');
 
   if (q) {

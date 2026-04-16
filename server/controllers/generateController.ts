@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { waitUntil } from '@vercel/functions';
 import { supabase } from '../lib/supabase.js';
 import { buildDualPrompts } from '../services/claude.js';
-import { generateImageFromReference, generateVideoMotionControl, startVideoKling3Task, checkKlingTask } from '../services/kie.js';
+import { generateImageFromReference, generateVideoMotionControl, startVideoKling3Task, startSeedanceTask, checkKlingTask } from '../services/kie.js';
 
 export async function startGeneration(req: Request, res: Response): Promise<void> {
   const { exercise_id, angle_id, user_observations } = req.body as {
@@ -22,7 +22,7 @@ export async function startGeneration(req: Request, res: Response): Promise<void
 
   // Fetch exercise, angle, master prompt, shorts logo, and optional motion-control reference video
   const [exerciseResult, angleResult, masterPromptResult, shortsLogoResult, shortsLogoDescResult, referenceVideoResult] = await Promise.all([
-    supabase.from('exercises').select('name, base_technique, equipment, muscle_groups, movement_pattern, technique_cues').eq('id', exercise_id).single(),
+    supabase.from('exercises').select('name, base_technique, equipment, muscle_groups, movement_pattern, technique_cues, reference_video_url').eq('id', exercise_id).single(),
     supabase.from('camera_angles').select('name, prompt_modifier').eq('id', angle_id).single(),
     supabase.from('config').select('value').eq('key', 'master_prompt').single(),
     supabase.from('config').select('value').eq('key', 'shorts_logo_url').single(),
@@ -90,7 +90,7 @@ export async function startGeneration(req: Request, res: Response): Promise<void
 
 async function runPipeline(params: {
   generationId: string;
-  exercise: { name: string; base_technique: string; equipment: string | null; muscle_groups: string[] | null; movement_pattern: string | null; technique_cues: string[] | null };
+  exercise: { name: string; base_technique: string; equipment: string | null; muscle_groups: string[] | null; movement_pattern: string | null; technique_cues: string[] | null; reference_video_url: string | null };
   angle: { name: string; prompt_modifier: string };
   userObservations: string;
   masterPrompt: string;
@@ -137,13 +137,38 @@ async function runPipeline(params: {
       .update({ image_url: imageUrl, status: 'image_done' })
       .eq('id', generationId);
 
-    // STEP C: Start video task — fire and return immediately (no blocking poll).
-    // Kling 3.0 pro 10s takes 5-15 minutes; Vercel maxDuration is 300s.
-    // We store the task ID and let getGenerationStatus promote the status inline.
+    // STEP C: Start video task — choose path based on equipment type and reference video availability.
+    // Cable exercises (equipment matches /cable|polea/i) use specialised video paths:
+    //   1. Exercise has its own reference_video_url → Kling 3.0 motion-control (best realism)
+    //   2. No exercise reference video → Seedance 1.0 Pro (superior cable/rope physics)
+    // Non-cable exercises use the standard Kling 3.0 pro path.
     const usingMotionControl = referenceVideoUrl.trim().length > 0;
-    if (usingMotionControl) {
-      console.log(`[Pipeline ${generationId}] Step C: Starting Kling 3.0 motion-control task (reference: ${referenceVideoUrl})...`);
-      // Motion-control still polls synchronously (reference video + image = fast path).
+    const equipmentLower = (exercise.equipment ?? '').toLowerCase();
+    const isCableExercise = /cable|polea/.test(equipmentLower);
+    const exerciseReferenceVideoUrl = exercise.reference_video_url?.trim() ?? '';
+
+    if (isCableExercise && exerciseReferenceVideoUrl.length > 0) {
+      // Cable + per-exercise reference video → Kling 3.0 motion-control (synchronous)
+      console.log(`[Pipeline ${generationId}] Step C: Cable exercise — Kling 3.0 motion-control (exercise reference: ${exerciseReferenceVideoUrl})...`);
+      await supabase.from('generations').update({ status: 'animating' }).eq('id', generationId);
+      const videoUrl = await generateVideoMotionControl(imageUrl, exerciseReferenceVideoUrl, videoPrompt);
+      await supabase
+        .from('generations')
+        .update({ video_url: videoUrl, status: 'completed' })
+        .eq('id', generationId);
+      console.log(`[Pipeline ${generationId}] Motion-control completed.`);
+    } else if (isCableExercise) {
+      // Cable + no reference video → Seedance 1.0 Pro (non-blocking, better cable physics)
+      console.log(`[Pipeline ${generationId}] Step C: Cable exercise — launching Seedance 1.0 Pro task (non-blocking)...`);
+      const seedanceTaskId = await startSeedanceTask(imageUrl, videoPrompt);
+      await supabase
+        .from('generations')
+        .update({ status: 'animating', kie_video_task_id: seedanceTaskId })
+        .eq('id', generationId);
+      console.log(`[Pipeline ${generationId}] Seedance task launched: ${seedanceTaskId}. Polling deferred to status endpoint.`);
+    } else if (usingMotionControl) {
+      // Non-cable + global motion-control reference video configured
+      console.log(`[Pipeline ${generationId}] Step C: Starting Kling 3.0 motion-control task (global reference: ${referenceVideoUrl})...`);
       await supabase.from('generations').update({ status: 'animating' }).eq('id', generationId);
       const videoUrl = await generateVideoMotionControl(imageUrl, referenceVideoUrl, videoPrompt);
       await supabase
@@ -152,6 +177,7 @@ async function runPipeline(params: {
         .eq('id', generationId);
       console.log(`[Pipeline ${generationId}] Motion-control completed.`);
     } else {
+      // Standard path: Kling 3.0 pro (non-blocking)
       console.log(`[Pipeline ${generationId}] Step C: Launching Kling 3.0 pro task (non-blocking)...`);
       const kieTaskId = await startVideoKling3Task(imageUrl, videoPrompt);
       await supabase

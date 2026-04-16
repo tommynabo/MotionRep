@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS public.exercises (
   is_compound         BOOLEAN     DEFAULT TRUE,
   is_active           BOOLEAN     DEFAULT TRUE,
   notes               TEXT,
+  reference_video_url TEXT        DEFAULT '',
   created_by          UUID        REFERENCES public.users(id) ON DELETE SET NULL,
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
