@@ -27,9 +27,10 @@ export async function buildDualPrompts(params: {
   cameraModifier: string;
   userObservations: string;
   shortsLogoUrl: string;
+  shortsLogoDescription: string;
   masterPromptTemplate: string;
 }): Promise<DualPrompts> {
-  const { exerciseName, baseTechnique, equipment, muscleGroups, movementPattern, techniqueCues, cameraAngle, cameraModifier, userObservations, shortsLogoUrl, masterPromptTemplate } = params;
+  const { exerciseName, baseTechnique, equipment, muscleGroups, movementPattern, techniqueCues, cameraAngle, cameraModifier, userObservations, shortsLogoUrl, shortsLogoDescription, masterPromptTemplate } = params;
 
   const systemMessage = `You are an expert Biomechanics Coach and Master AI Prompt Engineer for fitness video generation.
 Your task is to generate two complete, ready-to-send prompt strings following the "Jeff Nippard Clinical Standard".
@@ -48,13 +49,15 @@ CORE RULES — JEFF NIPPARD CLINICAL STANDARD
 (These rules are non-negotiable and must be reflected in every prompt you output)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-RULE 1 — THE AESTHETIC (Background):
+RULE 1 — THE AESTHETIC (Background — applies to BOTH image and video):
 The background must ALWAYS be described as:
 "Pure white seamless background. The only elements visible are the athlete and the exercise equipment being used. No gym environment, no other machines, no extra people. Clinically clean white studio backdrop, fully lit with no shadows on the background."
+This rule is ABSOLUTE and applies to every single frame of the video. The background MUST NOT change, fade, gain texture, or show any environmental elements at any point during the movement. PROHIBITION: no gradient, no grey tone, no gym floor texture, no architectural elements.
 
 RULE 2 — THE SUBJECT:
 The subject must ALWAYS be described as:
-"An athletic, lean 30-year-old man with a naturally defined muscular physique. He is shirtless to clearly display muscle activation and wearing solid black athletic shorts. The shorts have a small white brand logo printed on the outer left thigh — the logo is clearly visible and precisely on the left leg only."
+"An athletic, lean 30-year-old man with a naturally defined muscular physique. He is shirtless to clearly display muscle activation and wearing solid black athletic shorts."
+SHORTS LOGO — CRITICAL: The outer left thigh of the black shorts has a logo printed on it. The logo is described as: "${shortsLogoDescription}". You MUST reproduce this description VERBATIM in the image_prompt like this: "On the outer left thigh of the black shorts, there is ${shortsLogoDescription} — clearly visible, precisely placed, not on the right leg, not on both legs, only on the left thigh outer face." PROHIBITION: do not invent a different logo, do not omit the logo, do not place it anywhere other than the outer left thigh.
 Preserve exact facial identity, facial structure, skin tone and hair from the provided reference image throughout. Do NOT alter or regenerate the face.
 
 RULE 3 — ANATOMY AND GRIP PRECAUTIONS (Equipment-aware, Critical):
@@ -127,7 +130,7 @@ Build the "image_prompt" string in this order:
 5. Implement spatial positioning (RULE 6) — describe exactly where the barbell/dumbbell/cable is in 3D space relative to the body AND relative to the camera angle.
 6. Grip/hand anatomy (RULE 3) — adapted precisely to this exercise's implement (barbell/dumbbell/cable/bodyweight)
 7. Lighting: "Soft professional studio key light, subtle rim light highlighting muscle contours, shadowless fill — ideal for instructional biomechanics photography."
-8. Background (RULE 1)
+8. Background (RULE 1): insert verbatim — "Pure white seamless background. The only elements visible are the athlete and the exercise equipment being used. No gym environment, no other machines, no extra people. Clinically clean white studio backdrop, fully lit with no shadows on the background."
 9. Style: "Hyper-realistic instructional fitness photograph, 8K resolution, sharp focus on full body, no artistic filters, no motion blur."
 10. Coaching notes: include userObservations if provided, otherwise "Perfect standard form."
 11. Full body framing (RULE 7 — insert verbatim)
@@ -143,7 +146,8 @@ Build the "video_prompt" string in this order:
 5. Movement quality (RULE 5): "steady, biomechanically perfect, absolutely no swinging or momentum. Exactly 2 continuous repetitions."
 6. Cable physics (RULE 8, only if cable/pulley exercise): describe that the cable remains taut and connected throughout the full ROM, changing angle in sync with the athlete's movement.
 7. Physics: describe visible physical effects — weight inertia, muscle belly deformation at contraction, tendon stretch at full extension, realistic implement arc.
-8. Identity consistency: "Preserve exact facial features, skin tone, hair and overall body identity from the input reference frame throughout every frame of the video. No face morphing, no identity drift."`;
+8. Background lock (RULE 1): insert verbatim — "BACKGROUND ABSOLUTE LOCK: Pure white seamless background throughout every single frame. The background does NOT change at any point during the movement. No environmental elements, no grey tones, no floor texture, no colour shift. Clinically clean white studio backdrop maintained 100% of the video duration."
+9. Identity consistency: "Preserve exact facial features, skin tone, hair and overall body identity from the input reference frame throughout every frame of the video. No face morphing, no identity drift."`;
 
   const userMessage = `Exercise: ${exerciseName}
 Equipment type: ${equipment}
@@ -154,7 +158,8 @@ Correct technique (biomechanics reference): ${baseTechnique}
 Camera angle name: ${cameraAngle}
 Camera angle instruction (insert verbatim into image_prompt): ${cameraModifier}
 Coach observations: ${userObservations || 'None — use standard perfect form'}
-Shorts logo reference (white brand logo on outer left thigh of black shorts): ${shortsLogoUrl || 'not provided — use a generic white logo badge'}
+Shorts logo visual description (use this VERBATIM in the image_prompt for the outer left thigh logo): ${shortsLogoDescription}
+Shorts logo image reference URL (do NOT pass to Flux — for your context only): ${shortsLogoUrl || 'not provided'}
 Style/environment supplementary reference: ${masterPromptTemplate}
 
 Generate the dual prompts now following the Jeff Nippard Clinical Standard. Pay special attention to RULE 3 (grip/implement) and apply the correct variant for the equipment type "${equipment}". If equipment involves cables or pulleys, enforce RULE 8 fully.
