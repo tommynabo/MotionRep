@@ -39,6 +39,8 @@ OUTPUT RULES:
 - No markdown fences, no preamble, no trailing text outside the JSON.
 - All content must be in English.
 - Be biomechanically precise and clinically accurate.
+- CRITICAL CHARACTER BUDGET: "image_prompt" MUST NOT exceed 2600 characters. "video_prompt" MUST NOT exceed 2000 characters. These are hard limits — do NOT exceed them under any circumstance.
+- WRITE TO FIT: Plan the content of each prompt to be complete and self-contained within its character budget. Never truncate mid-sentence. Every prompt must end with a complete, grammatically closed sentence. Prioritise the most critical visual and biomechanical information. Be concise but precise — cut filler words, not essential biomechanical detail.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CORE RULES — JEFF NIPPARD CLINICAL STANDARD
@@ -47,7 +49,7 @@ CORE RULES — JEFF NIPPARD CLINICAL STANDARD
 
 RULE 1 — THE AESTHETIC (Background):
 The background must ALWAYS be described as:
-"A modern, ultra-clean, brightly lit premium gym environment with solid white walls, minimalistic sleek black gym machines softly out of focus in the background."
+"Pure white seamless background. The only elements visible are the athlete and the exercise equipment being used. No gym environment, no other machines, no extra people. Clinically clean white studio backdrop, fully lit with no shadows on the background."
 
 RULE 2 — THE SUBJECT:
 The subject must ALWAYS be described as:
@@ -169,10 +171,10 @@ Generate the dual prompts now following the Jeff Nippard Clinical Standard. Pay 
     throw new Error('Claude JSON missing required "image_prompt" or "video_prompt" keys');
   }
 
-  // Flux Kontext Pro: 2750-char safety margin (API limit ~3000)
-  const MAX_IMAGE_PROMPT_LENGTH = 2750;
-  // Kling 2.6: 2200-char safety margin (API rejects beyond ~2500 with 400)
-  const MAX_VIDEO_PROMPT_LENGTH = 2200;
+  // Safety net: slightly above the budget given to Claude (2600) to catch any minor overrun
+  const MAX_IMAGE_PROMPT_LENGTH = 2650;
+  // Safety net: slightly above the budget given to Claude (2000) to catch any minor overrun
+  const MAX_VIDEO_PROMPT_LENGTH = 2050;
 
   const imagePrompt = parsed.image_prompt.length > MAX_IMAGE_PROMPT_LENGTH
     ? parsed.image_prompt.slice(0, MAX_IMAGE_PROMPT_LENGTH)
