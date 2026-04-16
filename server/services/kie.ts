@@ -108,27 +108,26 @@ async function pollFluxTask(taskId: string): Promise<string> {
 }
 
 /**
- * Generate a fitness scene image using Flux 1 Kontext (txt2img + identity reference).
- * No inputImage — the model generates the exercise from scratch using the prompt,
- * so there is no pose bias from the reference photo.
- * referenceImages — the athlete's reference photo is provided so the model preserves
- * facial identity and body characteristics in the generated scene.
+ * Generate a fitness scene image using Flux Kontext Max (text-to-image mode).
+ * No inputImage — generates the exercise entirely from the Claude prompt,
+ * with no pose bias from any reference photo.
+ * Uses flux-kontext-max for highest quality output.
  * Returns the URL of the generated image.
  */
 export async function generateImageFromReference(
   promptText: string,
-  referenceImageUrl: string,
+  _referenceImageUrl: string,
 ): Promise<string> {
   // Flux Kontext uses its own dedicated endpoint — NOT /jobs/createTask
   const res = await fetch(`${KIE_API_BASE}/flux/kontext/generate`, {
     method: 'POST',
     headers: kieHeaders(),
     body: JSON.stringify({
-      model: 'flux1-kontext',
+      model: 'flux-kontext-max',
       prompt: promptText,
-      referenceImages: [referenceImageUrl],
       aspectRatio: '9:16',
       outputFormat: 'jpeg',
+      safetyTolerance: 6,
     }),
   });
   const json = (await res.json()) as { code: number; msg: string; data: { taskId: string } };
