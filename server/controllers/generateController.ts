@@ -147,25 +147,15 @@ async function runPipeline(params: {
     const isCableExercise = /cable|polea/.test(equipmentLower);
     const exerciseReferenceVideoUrl = exercise.reference_video_url?.trim() ?? '';
 
-    if (isCableExercise && exerciseReferenceVideoUrl.length > 0) {
-      // Cable + per-exercise reference video → Kling 3.0 motion-control (synchronous)
-      console.log(`[Pipeline ${generationId}] Step C: Cable exercise — Kling 3.0 motion-control (exercise reference: ${exerciseReferenceVideoUrl})...`);
-      await supabase.from('generations').update({ status: 'animating' }).eq('id', generationId);
-      const videoUrl = await generateVideoMotionControl(imageUrl, exerciseReferenceVideoUrl, videoPrompt);
-      await supabase
-        .from('generations')
-        .update({ video_url: videoUrl, status: 'completed' })
-        .eq('id', generationId);
-      console.log(`[Pipeline ${generationId}] Motion-control completed.`);
-    } else if (isCableExercise) {
-      // Cable + no reference video → Seedance 1.0 Pro (non-blocking, better cable physics)
-      console.log(`[Pipeline ${generationId}] Step C: Cable exercise — launching Seedance 1.0 Pro task (non-blocking)...`);
+    if (isCableExercise) {
+      // Cable exercise → Seedance 2 (non-blocking, superior cable/rope physics)
+      console.log(`[Pipeline ${generationId}] Step C: Cable exercise — launching Seedance 2 task (non-blocking)...`);
       const seedanceTaskId = await startSeedanceTask(imageUrl, videoPrompt);
       await supabase
         .from('generations')
         .update({ status: 'animating', kie_video_task_id: seedanceTaskId })
         .eq('id', generationId);
-      console.log(`[Pipeline ${generationId}] Seedance task launched: ${seedanceTaskId}. Polling deferred to status endpoint.`);
+      console.log(`[Pipeline ${generationId}] Seedance 2 task launched: ${seedanceTaskId}. Polling deferred to status endpoint.`);
     } else if (usingMotionControl) {
       // Non-cable + global motion-control reference video configured
       console.log(`[Pipeline ${generationId}] Step C: Starting Kling 3.0 motion-control task (global reference: ${referenceVideoUrl})...`);
