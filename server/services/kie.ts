@@ -118,13 +118,16 @@ export async function generateImageFromReference(
   promptText: string,
   _referenceImageUrl: string,
 ): Promise<string> {
+  // KIE Flux Kontext API hard limit is 3000 chars. Truncate as last-resort safety net.
+  const safePrompt = promptText.length > 2950 ? promptText.slice(0, 2950) : promptText;
+
   // Flux Kontext uses its own dedicated endpoint — NOT /jobs/createTask
   const res = await fetch(`${KIE_API_BASE}/flux/kontext/generate`, {
     method: 'POST',
     headers: kieHeaders(),
     body: JSON.stringify({
       model: 'flux-kontext-max',
-      prompt: promptText,
+      prompt: safePrompt,
       aspectRatio: '9:16',
       outputFormat: 'jpeg',
       safetyTolerance: 6,
