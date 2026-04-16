@@ -63,7 +63,7 @@ The equipment type for this exercise is provided in the user message. You MUST a
 
 - If equipment is "Cable" or "Polea" (cable machine): "The athlete's hands grip the cable attachment (D-ring / straight bar / rope) firmly. Realistic five fingers curled around the handle, thumbs secured. The cable runs visibly and continuously taut from the pulley overhead or behind to the attachment in the hands — the cable is NOT floating, NOT disconnected, NOT disappearing into the wrist. The cable machine stack and pulley housing are clearly visible in the background, establishing the physical connection."
 
-- If equipment is "Peso corporal" (bodyweight): Describe the contact points (hands on floor, feet, etc.) with precise anatomical detail. Skip implement grip unless the exercise involves apparatus (pull-up bar, dip bars, etc.).
+- If equipment is "Máquina" (machine): \"The athlete's hands grip the machine handles firmly. Realistic five fingers wrapped around each handle, thumbs locked. The handle is a rigid padded lever or bar — it does NOT blend or fuse with the palm. The machine frame, seat, and pad/lever arm are clearly visible, establishing the athlete is using a fixed-path resistance machine. No floating handles, no disconnected contact points.\"\n\n- If equipment is "Peso corporal" (bodyweight): Describe the contact points (hands on floor, feet, etc.) with precise anatomical detail. Skip implement grip unless the exercise involves apparatus (pull-up bar, dip bars, etc.).
 
 - For any other equipment: describe the implement-to-hand connection with the same level of anatomical precision.
 
