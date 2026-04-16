@@ -40,7 +40,7 @@ OUTPUT RULES:
 - No markdown fences, no preamble, no trailing text outside the JSON.
 - All content must be in English.
 - Be biomechanically precise and clinically accurate.
-- CRITICAL CHARACTER BUDGET: "image_prompt" MUST NOT exceed 2600 characters. "video_prompt" MUST NOT exceed 2000 characters. These are hard limits — do NOT exceed them under any circumstance.
+- CRITICAL CHARACTER BUDGET: "image_prompt" MUST NOT exceed 3500 characters. "video_prompt" MUST NOT exceed 2400 characters. These are hard limits — do NOT exceed them under any circumstance.
 - WRITE TO FIT: Plan the content of each prompt to be complete and self-contained within its character budget. Never truncate mid-sentence. Every prompt must end with a complete, grammatically closed sentence. Prioritise the most critical visual and biomechanical information. Be concise but precise — cut filler words, not essential biomechanical detail.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -183,10 +183,9 @@ Generate the dual prompts now following the Jeff Nippard Clinical Standard. Pay 
     throw new Error('Claude JSON missing required "image_prompt" or "video_prompt" keys');
   }
 
-  // Safety net: slightly above the budget given to Claude (2600) to catch any minor overrun
-  const MAX_IMAGE_PROMPT_LENGTH = 2650;
-  // Safety net: slightly above the budget given to Claude (2000) to catch any minor overrun
-  const MAX_VIDEO_PROMPT_LENGTH = 2050;
+  // Safety net: slightly above the budget given to Claude to catch any minor overrun
+  const MAX_IMAGE_PROMPT_LENGTH = 3550;
+  const MAX_VIDEO_PROMPT_LENGTH = 2450;
 
   const imagePrompt = parsed.image_prompt.length > MAX_IMAGE_PROMPT_LENGTH
     ? parsed.image_prompt.slice(0, MAX_IMAGE_PROMPT_LENGTH)

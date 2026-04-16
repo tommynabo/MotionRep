@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { waitUntil } from '@vercel/functions';
 import { supabase } from '../lib/supabase.js';
 import { buildDualPrompts } from '../services/claude.js';
-import { generateImageFromReference, generateVideo } from '../services/kie.js';
+import { generateImageFromText, generateImageFromReference, generateVideo } from '../services/kie.js';
 
 export async function startGeneration(req: Request, res: Response): Promise<void> {
   const { exercise_id, angle_id, user_observations } = req.body as {
@@ -118,17 +118,28 @@ async function runPipeline(params: {
       .update({ final_prompt_used: JSON.stringify({ image: imagePrompt, video: videoPrompt }) })
       .eq('id', generationId);
 
-    // STEP B: Generate image with Flux Kontext Pro (img2img, face reference)
-    console.log(`[Pipeline ${generationId}] Step B: Generating image with Flux Kontext Pro...`);
-    const imageUrl = await generateImageFromReference(imagePrompt, referenceImageUrl);
+    // STEP B: Generate scene image with Flux Pro 1.1 (txt2img — correct exercise, white background)
+    console.log(`[Pipeline ${generationId}] Step B: Generating scene with Flux Pro 1.1 (txt2img)...`);
+    await supabase.from('generations').update({ status: 'generating_scene' }).eq('id', generationId);
+    const sceneImageUrl = await generateImageFromText(imagePrompt);
+
+    await supabase
+      .from('generations')
+      .update({ image_url: sceneImageUrl, status: 'scene_done' })
+      .eq('id', generationId);
+
+    // STEP C: Face transfer with Flux Kontext Pro (img2img — identity from reference, scene unchanged)
+    console.log(`[Pipeline ${generationId}] Step C: Face transfer with Flux Kontext Pro...`);
+    await supabase.from('generations').update({ status: 'face_transfer' }).eq('id', generationId);
+    const imageUrl = await generateImageFromReference(sceneImageUrl, referenceImageUrl);
 
     await supabase
       .from('generations')
       .update({ image_url: imageUrl, status: 'image_done' })
       .eq('id', generationId);
 
-    // STEP C: Generate video with Kling 2.6
-    console.log(`[Pipeline ${generationId}] Step C: Generating video with Kling 2.6...`);
+    // STEP D: Generate video with Kling 2.6
+    console.log(`[Pipeline ${generationId}] Step D: Generating video with Kling 2.6...`);
     await supabase.from('generations').update({ status: 'animating' }).eq('id', generationId);
     const videoUrl = await generateVideo(imageUrl, videoPrompt);
 

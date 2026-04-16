@@ -108,15 +108,49 @@ async function pollFluxTask(taskId: string): Promise<string> {
 }
 
 /**
- * Generate a static image using Flux Kontext Pro (image-to-image).
- * Uses the reference model photo to preserve facial identity.
- * Produces a pure white background instructional fitness image.
+ * Stage 1 — Generate a scene image from text using Flux Pro 1.1 (txt2img).
+ * Generates the correct exercise, white background and full-body framing
+ * purely from the Claude-assembled prompt, with no reference image bias.
  * Returns the URL of the generated image.
  */
+export async function generateImageFromText(promptText: string): Promise<string> {
+  const taskId = await createTask({
+    model: 'flux/generate',
+    input: {
+      prompt: promptText,
+      negative_prompt:
+        'wrong exercise, incorrect movement, squats, lunges, deadlift, standing when should be lying, gray background, colored background, barbell through head, barbell overlapping face, cropped feet, cropped hands, partial body, close-up, portrait crop, blurry, watermark, text',
+      aspect_ratio: '9:16',
+      num_inference_steps: 30,
+      guidance_scale: 4.5,
+      model_version: 'flux-pro-1.1',
+    },
+  });
+
+  const urls = await pollTask(taskId);
+  const imageUrl = urls[0];
+  if (!imageUrl) {
+    throw new Error('KIE Flux Pro 1.1 did not return an image URL');
+  }
+  return imageUrl;
+}
+
+/**
+ * Stage 2 — Face transfer using Flux Kontext Pro (image-to-image).
+ * Takes the scene image generated in Stage 1 and transfers the athlete's
+ * facial identity from the reference photo, WITHOUT changing the exercise,
+ * background, equipment, framing, or any other element.
+ * Returns the URL of the face-transferred image.
+ */
 export async function generateImageFromReference(
-  promptText: string,
+  sceneImageUrl: string,
   referenceImageUrl: string,
 ): Promise<string> {
+  const faceTransferPrompt =
+    'Transfer only the face and head identity from the reference photo to the person in this fitness scene image. ' +
+    'Preserve the exact same face shape, facial features, skin tone, eye colour, nose, lips, jaw and hair style from the reference. ' +
+    'DO NOT change anything else: the exercise movement, body pose, barbell or equipment position, background, clothing, framing, or body proportions must remain identical to the input scene image. ' +
+    'Only the face identity is being updated. Nothing else changes.';
 
   // Flux Kontext uses its own dedicated endpoint — NOT /jobs/createTask
   const res = await fetch(`${KIE_API_BASE}/flux/kontext/generate`, {
@@ -124,15 +158,16 @@ export async function generateImageFromReference(
     headers: kieHeaders(),
     body: JSON.stringify({
       model: 'flux-kontext-pro',
-      prompt: promptText,
-      inputImage: referenceImageUrl,
+      prompt: faceTransferPrompt,
+      inputImage: sceneImageUrl,
+      referenceImage: referenceImageUrl,
       aspectRatio: '9:16',
       outputFormat: 'jpeg',
     }),
   });
   const json = (await res.json()) as { code: number; msg: string; data: { taskId: string } };
   if (json.code !== 200) {
-    throw new Error(`KIE Flux Kontext error ${json.code}: ${json.msg}`);
+    throw new Error(`KIE Flux Kontext face-transfer error ${json.code}: ${json.msg}`);
   }
 
   return await pollFluxTask(json.data.taskId);
@@ -147,18 +182,17 @@ export async function generateVideo(
   imageUrl: string,
   promptText: string,
 ): Promise<string> {
-  // Kling 2.6 rejects prompts beyond ~2500 chars with a 400 error.
-  // Use 2200 as a hard ceiling to stay safely within the limit.
-  const KLING_MAX_PROMPT_LENGTH = 2200;
-  const safePrompt = promptText.length > KLING_MAX_PROMPT_LENGTH
-    ? promptText.slice(0, KLING_MAX_PROMPT_LENGTH)
-    : promptText;
+  if (promptText.length > 2500) {
+    throw new Error(
+      `Video prompt exceeds Kling 2.6 limit (${promptText.length} chars). Claude must stay within 2500 chars.`,
+    );
+  }
 
   const taskId = await createTask({
     model: 'kling-2.6/image-to-video',
     input: {
       image_urls: [imageUrl],
-      prompt: safePrompt,
+      prompt: promptText,
       sound: false,
       duration: '5',
     },
