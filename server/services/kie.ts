@@ -328,7 +328,7 @@ export async function startSeedanceTask(
       image_url: imageUrl,
       prompt: safePrompt,
       sound: false,
-      duration: 5,
+      duration: 10,
       aspect_ratio: '9:16',
     },
   });
