@@ -119,13 +119,42 @@ export async function refineImageWithLogoAndBackground(
   logoDescription: string,
 ): Promise<string> {
   const prompt =
-    `Make EXACTLY two targeted edits to this fitness image — preserve everything else pixel-perfect:
+    `INSTRUCTION: You are performing SURGICAL IMAGE REFINEMENT, not free regeneration.
 
-EDIT 1 — BACKGROUND: Transform the background into a premium rented fitness studio. White bright walls, smooth polished white concrete floor, large industrial pendant lights hanging from a white ceiling. The floor beneath the athlete should have a faint soft natural shadow — realistic and grounded, not dramatic. REMOVE from the background: any non-white walls, dark gym atmosphere, rubber flooring, mirror walls, visible signage, multiple machines in background, any coloured surfaces. The ONLY objects that may remain visible are the athlete and the specific equipment being used in this image. The result must feel like an exclusive high-end studio hired for a professional fitness shoot: minimal, architectural, all-white — but real and three-dimensional, not a cut-out.
+YOU MUST PRESERVE PIXEL-PERFECT:
+- The athlete's exact body position, pose, limb angles, head orientation, torso angle
+- Every joint angle at the exact same degree
+- The exercise equipment's exact position, size, orientation, and geometry
+- The athlete's face, facial features, skin tone, hair texture
+- The camera angle and framing — do NOT change perspective, angle, or crop
+- The athlete's muscle definition, body proportions, and overall physique
+- The background behind the athlete/equipment can be modified ONLY
 
-EDIT 2 — SHORTS LOGO: On the outer left thigh of the black athletic shorts (the left leg as seen facing the camera), print ${logoDescription}. The logo sits on the outer lateral face of the left thigh only — NOT on the right leg, NOT on the front, NOT on the back. Size: approximately 3 × 3 cm. Clearly visible against the black fabric.
+IF THE ATHLETE'S POSITION, EQUIPMENT GEOMETRY, OR CAMERA ANGLE WOULD CHANGE EVEN SLIGHTLY TO ACCOMPLISH THE EDITS BELOW: DO NOT MAKE ANY CHANGES. RETURN THE INPUT IMAGE UNCHANGED.
 
-STRICT PRESERVATION: The athlete's face identity, skin tone, hair, muscle definition, body proportions, pose, joint angles, and all exercise equipment must remain completely unchanged from the input image. Only the background and the shorts logo may differ.`;
+THE ONLY TWO CHANGES YOU WILL MAKE:
+
+1. BACKGROUND REPLACEMENT (surgical):
+   - All pixels that are NOT the athlete's skin, hair or the exercise equipment must become:
+     * Bright white smooth walls (#FFFFFF)
+     * Bright white polished concrete floor
+     * Industrial black pendant lights (large domes) hanging from white ceiling
+     * A single soft natural shadow cast by the athlete directly on the floor (depth only, minimal)
+   - REMOVE: any gym equipment/machines in background, mirrors, colored walls, signage, people, any non-white surface
+   - KEEP: only the athlete and the ONE piece of equipment they are using — nothing else visible
+
+2. SHORTS LOGO PLACEMENT (surgical):
+   - Locate the outer left thigh of the black athletic shorts (the left leg as seen from the camera viewpoint)
+   - On that left outer thigh surface, composite this logo:
+     ${logoDescription}
+   - Size: precisely 3cm × 3cm
+   - Position: 100% on the outer lateral face of the left thigh — NOT on the right leg, NOT on the front torso, NOT on the back
+   - Do NOT move the shorts, do NOT alter the leg position or shape, do NOT change the athlete's stance
+   - If you cannot place the logo without altering the leg structure: place it as close as possible to the left outer thigh
+
+FINAL SAFETY CHECK: Before outputting, verify that the athlete's pose is IDENTICAL to the input. If even one limb angle has changed, start over or return the input unchanged.
+
+Output: A refined image with only background and logo edited. Input pose, angle, and equipment geometry: UNCHANGED.`;
 
   const safePrompt = prompt.length > 2950 ? prompt.slice(0, 2950) : prompt;
 
@@ -325,7 +354,7 @@ export async function startSeedanceTask(
   return await createTask({
     model: 'bytedance/seedance-1.5-pro',
     input: {
-      image_url: imageUrl,
+      input_image: imageUrl,
       prompt: safePrompt,
       sound: false,
       duration: 10,
