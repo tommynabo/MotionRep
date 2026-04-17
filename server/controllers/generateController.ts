@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { waitUntil } from '@vercel/functions';
 import { supabase } from '../lib/supabase.js';
 import { buildDualPrompts } from '../services/claude.js';
-import { generateImageFromReference, startSeedanceTask, checkKlingTask } from '../services/kie.js';
+import { generateImageFromReference, refineImageWithLogoAndBackground, startSeedanceTask, checkKlingTask } from '../services/kie.js';
 
 export async function startGeneration(req: Request, res: Response): Promise<void> {
   const { exercise_id, angle_id, user_observations } = req.body as {
@@ -41,8 +41,12 @@ export async function startGeneration(req: Request, res: Response): Promise<void
   const exercise = exerciseResult.data;
   const angle = angleResult.data;
   const masterPrompt = masterPromptResult.data?.value ?? '';
-  const shortsLogoUrl = shortsLogoResult.data?.value ?? '';
-  const shortsLogoDescription = shortsLogoDescResult.data?.value ?? 'a small white minimalist brand logo';
+  // Derive a public URL for the logo from APP_URL if not set in config.
+  const appUrl = (process.env.APP_URL ?? '').replace(/\/$/, '');
+  const shortsLogoUrl = shortsLogoResult.data?.value || (appUrl ? `${appUrl}/logoempresa.png` : '');
+  const shortsLogoDescription =
+    shortsLogoDescResult.data?.value ||
+    "a white three-dimensional isometric letter 'S' with bold geometric angular facets, constructed from stepped cubic planes in an isometric perspective — the official Symmetry brand logo printed on the fabric";
   const referenceImageUrl = REFERENCE_MODEL_IMAGE_URL;
 
   // Create the generation record with status 'pending'
@@ -133,10 +137,20 @@ async function runPipeline(params: {
       .update({ image_url: imageUrl, status: 'image_done' })
       .eq('id', generationId);
 
+    // STEP B2: Refinement pass — enforce pure white background + composite Symmetry S logo.
+    // Uses the first-pass image as input and returns a cleaned, logo-stamped image.
+    console.log(`[Pipeline ${generationId}] Step B2: Refining image (white bg + logo)...`);
+    const logoDescription = shortsLogoDescription || 'a white 3D geometric isometric letter S with bold angular faceted planes on the outer left thigh';
+    const refinedImageUrl = await refineImageWithLogoAndBackground(imageUrl, logoDescription);
+    await supabase
+      .from('generations')
+      .update({ image_url: refinedImageUrl })
+      .eq('id', generationId);
+
     // STEP C: Start Seedance 2 video task (non-blocking) — used for all exercises.
     // Seedance 2 delivers superior movement quality and cable/rope physics.
     console.log(`[Pipeline ${generationId}] Step C: Launching Seedance 2 task (non-blocking)...`);
-    const seedanceTaskId = await startSeedanceTask(imageUrl, videoPrompt);
+    const seedanceTaskId = await startSeedanceTask(refinedImageUrl, videoPrompt);
     await supabase
       .from('generations')
       .update({ status: 'animating', kie_video_task_id: seedanceTaskId })

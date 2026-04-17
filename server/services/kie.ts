@@ -108,6 +108,48 @@ async function pollFluxTask(taskId: string): Promise<string> {
 }
 
 /**
+ * Second-pass Flux Kontext refinement: enforce pure white studio background
+ * and composite the Symmetry brand logo onto the outer left thigh of the shorts.
+ * The input is the first-pass generated image (may have non-white background).
+ * The output is the same image with white background + logo added.
+ * Everything else (face, body, pose, equipment) is preserved exactly.
+ */
+export async function refineImageWithLogoAndBackground(
+  imageUrl: string,
+  logoDescription: string,
+): Promise<string> {
+  const prompt =
+    `Make EXACTLY two targeted edits to this fitness image — preserve everything else pixel-perfect:
+
+EDIT 1 — BACKGROUND: Replace the entire background with a PURE WHITE (#FFFFFF) seamless studio backdrop. Every pixel that is not the athlete's body or equipment must become pure white. No grey tones, no gradients, no shadows behind the subject, no gym elements, no floor texture — absolute clinical white, fully lit.
+
+EDIT 2 — SHORTS LOGO: On the outer left thigh of the black athletic shorts (the left leg as seen facing the camera), print ${logoDescription}. The logo sits on the outer lateral face of the left thigh only — NOT on the right leg, NOT on the front, NOT on the back. Size: approximately 3 × 3 cm. Clearly visible against the black fabric.
+
+STRICT PRESERVATION: The athlete's face identity, skin tone, hair, muscle definition, body proportions, pose, joint angles, and all exercise equipment must remain completely unchanged from the input image. Only the background and the shorts logo may differ.`;
+
+  const safePrompt = prompt.length > 2950 ? prompt.slice(0, 2950) : prompt;
+
+  const res = await fetch(`${KIE_API_BASE}/flux/kontext/generate`, {
+    method: 'POST',
+    headers: kieHeaders(),
+    body: JSON.stringify({
+      model: 'flux-kontext-max',
+      prompt: safePrompt,
+      inputImage: imageUrl,
+      aspectRatio: '9:16',
+      outputFormat: 'jpeg',
+      safetyTolerance: 6,
+    }),
+  });
+  const json = (await res.json()) as { code: number; msg: string; data: { taskId: string } };
+  if (json.code !== 200) {
+    throw new Error(`KIE Flux Kontext refinement error ${json.code}: ${json.msg}`);
+  }
+
+  return await pollFluxTask(json.data.taskId);
+}
+
+/**
  * Generate a fitness scene image using Flux Kontext Max (image-to-image mode).
  * The referenceImageUrl is passed as inputImage so Flux Kontext uses the athlete
  * reference photo as the identity anchor, then applies the full Claude prompt.

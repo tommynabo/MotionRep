@@ -118,6 +118,7 @@ export default function VideoDetail() {
                 controls
                 autoPlay
                 loop
+                muted
                 className="w-full h-full object-contain"
                 src={gen.video_url}
               />
