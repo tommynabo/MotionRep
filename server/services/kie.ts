@@ -108,15 +108,16 @@ async function pollFluxTask(taskId: string): Promise<string> {
 }
 
 /**
- * Generate a fitness scene image using Flux Kontext Max (text-to-image mode).
- * No inputImage — generates the exercise entirely from the Claude prompt,
- * with no pose bias from any reference photo.
+ * Generate a fitness scene image using Flux Kontext Max (image-to-image mode).
+ * The referenceImageUrl is passed as inputImage so Flux Kontext uses the athlete
+ * reference photo as the identity anchor, then applies the full Claude prompt.
+ * This ensures physique, skin, clothing and general appearance stay consistent.
  * Uses flux-kontext-max for highest quality output.
  * Returns the URL of the generated image.
  */
 export async function generateImageFromReference(
   promptText: string,
-  _referenceImageUrl: string,
+  referenceImageUrl: string,
 ): Promise<string> {
   // KIE Flux Kontext API hard limit is 3000 chars. Truncate as last-resort safety net.
   const safePrompt = promptText.length > 2950 ? promptText.slice(0, 2950) : promptText;
@@ -128,6 +129,7 @@ export async function generateImageFromReference(
     body: JSON.stringify({
       model: 'flux-kontext-max',
       prompt: safePrompt,
+      inputImage: referenceImageUrl,
       aspectRatio: '9:16',
       outputFormat: 'jpeg',
       safetyTolerance: 6,
@@ -225,6 +227,7 @@ export async function generateVideoMotionControl(
       prompt: safePrompt,
       input_urls: [imageUrl],
       video_urls: [referenceVideoUrl],
+      sound: false,
       mode: '1080p',
       character_orientation: 'video',
       // Use the generated image as background source (white studio backdrop),
@@ -282,6 +285,7 @@ export async function startSeedanceTask(
     input: {
       image_url: imageUrl,
       prompt: safePrompt,
+      sound: false,
       duration: 5,
       aspect_ratio: '9:16',
     },
