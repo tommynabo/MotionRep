@@ -365,11 +365,12 @@ export async function startSeedanceTask(
   return await createTask({
     model: 'bytedance/seedance-1.5-pro',
     input: {
-      input_image: imageUrl,
       prompt: safePrompt,
-      sound: false,
-      duration: '10',
+      input_urls: [imageUrl],
       aspect_ratio: '9:16',
+      duration: '12',
+      fixed_lens: true,
+      generate_audio: false,
     },
   });
 }

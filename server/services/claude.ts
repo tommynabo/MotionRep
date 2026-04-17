@@ -90,7 +90,7 @@ RULE 5 — VIDEO ANIMATION STRICTNESS:
 The video_prompt MUST start with this exact header:
 "ULTRA STATIC LOCKED CAMERA. ABSOLUTELY NO ZOOM, NO PANNING, NO SCENE CHANGES. The exact initial framing must be maintained throughout the entire video."
 The movement must be described as: "steady, biomechanically perfect, absolutely no swinging or momentum. Exactly 4 continuous repetitions."
-TEMPO BUDGET — CRITICAL: The video is 10 seconds long. Use this exact tempo: 1.25s eccentric lowering, 0.25s pause at bottom, 0.75s concentric drive, 0.25s lockout hold = 2.5s per rep × 4 reps = 10s total. Do NOT use a slower tempo that would push the 4 reps beyond 10 seconds. Every repetition uses exactly 2.5 seconds.
+TEMPO BUDGET — CRITICAL: The video is 12 seconds long. Use this exact tempo: 1.5s eccentric lowering, 0.25s pause at bottom, 1s concentric drive, 0.25s lockout hold = 3s per rep × 4 reps = 12s total. Do NOT use a tempo that would exceed 12 seconds. Every repetition uses exactly 3 seconds.
 
 RULE 6 — IMPLEMENT SPATIAL POSITIONING (critical for compound lifts):
 For any exercise where the barbell is loaded on the upper back (back squat, high-bar squat, low-bar squat, good morning, barbell lunge, etc.), you MUST include this language in the image_prompt:
@@ -157,7 +157,7 @@ Build the "video_prompt" string in this order:
 2. Full body framing lock (RULE 9 — insert verbatim, immediately after the static camera header)
 2b. Camera angle lock (RULE 4 — MANDATORY): insert the camera angle instruction verbatim here, then insert the STRICT ANGLE ENFORCEMENT violation warning verbatim. Without this step the video model defaults to frontal. This is a hard requirement.
 3. Motion description (RULE 10 — MUST match the exact exercise named): full ROM cycle of "${exerciseName}" from start position through peak contraction and back to start. Name every joint involved and confirm the movement pattern matches this specific exercise precisely. Describe joint positions, limb orientation and implement position AS SEEN FROM THE SPECIFIED CAMERA ANGLE.
-4. Tempo: use EXACTLY "2s eccentric lowering, 0.5s pause at bottom, 1.5s concentric drive, 0.5s lockout hold" per repetition (4.5s/rep × 2 reps = 9s total — fits within the 10s video).
+4. Tempo: use EXACTLY "1.5s eccentric lowering, 0.25s pause at bottom, 1s concentric drive, 0.25s lockout hold" per repetition (3s/rep × 4 reps = 12s total — fits exactly within the 12s video).
 5. Movement quality (RULE 5): "steady, biomechanically perfect, absolutely no swinging or momentum. Exactly 4 continuous repetitions."
 6. Cable physics (RULE 8 + RULE 11, only if cable/pulley exercise): describe the cable as a physically constrained taut diagonal that changes angle smoothly with hand position. Embed the CABLE PHYSICS LOCK verbatim. Reinforce: cables are taut throughout entire ROM, angle changes are continuous and geometrically consistent with pulley positions, bilateral cables are always mirrored.
 7. Physics: describe visible physical effects — weight inertia, muscle belly deformation at contraction, tendon stretch at full extension, realistic implement arc.
