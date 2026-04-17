@@ -190,8 +190,19 @@ export async function generateImageFromReference(
   promptText: string,
   referenceImageUrl: string,
 ): Promise<string> {
+  // Prefix tells Flux that inputImage is ONLY an identity anchor — pose must come from the text prompt.
+  // Without this, Flux preserves the standing reference pose instead of generating the exercise.
+  const identityPrefix =
+    'IMPORTANT: The input image is provided SOLELY as a facial identity and skin tone reference. ' +
+    'You MUST COMPLETELY IGNORE the pose, body position, clothing, background, and composition of the input image. ' +
+    'Generate the subject performing the exercise described below — the pose, camera angle, ' +
+    'equipment, and scene must come entirely from the text prompt. ' +
+    'The ONLY elements to carry over from the input image are: the face, facial features, skin tone, and hair. ' +
+    'DO NOT replicate the standing, arms-crossed, or any other pose from the reference image. ';
+
+  const combinedPrompt = identityPrefix + promptText;
   // KIE Flux Kontext API hard limit is 3000 chars. Truncate as last-resort safety net.
-  const safePrompt = promptText.length > 2950 ? promptText.slice(0, 2950) : promptText;
+  const safePrompt = combinedPrompt.length > 2950 ? combinedPrompt.slice(0, 2950) : combinedPrompt;
 
   // Flux Kontext uses its own dedicated endpoint — NOT /jobs/createTask
   const res = await fetch(`${KIE_API_BASE}/flux/kontext/generate`, {
@@ -357,7 +368,7 @@ export async function startSeedanceTask(
       input_image: imageUrl,
       prompt: safePrompt,
       sound: false,
-      duration: 10,
+      duration: '10',
       aspect_ratio: '9:16',
     },
   });
