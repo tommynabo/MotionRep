@@ -121,7 +121,7 @@ export async function refineImageWithLogoAndBackground(
   const prompt =
     `Make EXACTLY two targeted edits to this fitness image — preserve everything else pixel-perfect:
 
-EDIT 1 — BACKGROUND: Replace the entire background with a PURE WHITE (#FFFFFF) seamless studio backdrop. Every pixel that is not the athlete's body or equipment must become pure white. No grey tones, no gradients, no shadows behind the subject, no gym elements, no floor texture — absolute clinical white, fully lit.
+EDIT 1 — BACKGROUND: Transform the background into a premium rented fitness studio. White bright walls, smooth polished white concrete floor, large industrial pendant lights hanging from a white ceiling. The floor beneath the athlete should have a faint soft natural shadow — realistic and grounded, not dramatic. REMOVE from the background: any non-white walls, dark gym atmosphere, rubber flooring, mirror walls, visible signage, multiple machines in background, any coloured surfaces. The ONLY objects that may remain visible are the athlete and the specific equipment being used in this image. The result must feel like an exclusive high-end studio hired for a professional fitness shoot: minimal, architectural, all-white — but real and three-dimensional, not a cut-out.
 
 EDIT 2 — SHORTS LOGO: On the outer left thigh of the black athletic shorts (the left leg as seen facing the camera), print ${logoDescription}. The logo sits on the outer lateral face of the left thigh only — NOT on the right leg, NOT on the front, NOT on the back. Size: approximately 3 × 3 cm. Clearly visible against the black fabric.
 

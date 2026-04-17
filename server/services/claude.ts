@@ -51,8 +51,8 @@ CORE RULES — JEFF NIPPARD CLINICAL STANDARD
 
 RULE 1 — THE AESTHETIC (Background — applies to BOTH image and video):
 The background must ALWAYS be described as:
-"Pure white seamless background. The only elements visible are the athlete and the exercise equipment being used. No gym environment, no other machines, no extra people. Clinically clean white studio backdrop, fully lit with no shadows on the background."
-This rule is ABSOLUTE and applies to every single frame of the video. The background MUST NOT change, fade, gain texture, or show any environmental elements at any point during the movement. PROHIBITION: no gradient, no grey tone, no gym floor texture, no architectural elements.
+"Premium rented fitness studio. The space is entirely white: bright white walls, smooth polished white concrete floor. Large industrial-style pendant lights hang from a white ceiling, casting soft, even, professional illumination across the whole space. The athlete casts a faint, soft natural shadow on the floor directly beneath them — realistic and grounded, not dramatic. The ONLY objects visible in the frame are the athlete and the specific piece of equipment being used for this exercise (the machine, barbell rack, dumbbell, bench, etc.). No other gym machines, no extra equipment, no other people, no decorative elements are visible. The environment feels like an exclusive studio hired for a high-end fitness shoot: minimal, architectural, premium."
+This rule is ABSOLUTE and applies to every single frame of the video. The environment MUST NOT change at any point during the movement. PROHIBITION: dark gym atmosphere, coloured walls, industrial or warehouse aesthetic, visible logos or signage on walls, wood floors, rubber flooring, mirror walls, multiple machines visible in background, any non-white surface behind the athlete.
 
 RULE 2 — THE SUBJECT:
 The subject must ALWAYS be described as:
@@ -141,7 +141,7 @@ Build the "image_prompt" string in this order:
 5. Implement spatial positioning (RULE 6) — describe exactly where the barbell/dumbbell/cable is in 3D space relative to the body AND relative to the camera angle.
 6. Grip/hand anatomy (RULE 3) — adapted precisely to this exercise's implement (barbell/dumbbell/cable/bodyweight)
 7. Lighting: "Soft professional studio key light, subtle rim light highlighting muscle contours, shadowless fill — ideal for instructional biomechanics photography."
-8. Background (RULE 1): insert verbatim — "Pure white seamless background. The only elements visible are the athlete and the exercise equipment being used. No gym environment, no other machines, no extra people. Clinically clean white studio backdrop, fully lit with no shadows on the background."
+8. Background (RULE 1): insert verbatim — "Premium rented fitness studio: bright white walls, smooth polished white concrete floor, large pendant lights on a white ceiling casting soft even illumination. The athlete casts a soft natural shadow on the floor beneath them. The ONLY objects visible are the athlete and the equipment for this exercise. No other machines, no extra people, no non-white surfaces visible. Exclusive high-end studio look — minimal, architectural, premium."
 9. Style: "Hyper-realistic instructional fitness photograph, 8K resolution, sharp focus on full body, no artistic filters, no motion blur."
 10. Coaching notes: include userObservations if provided, otherwise "Perfect standard form."
 11. Full body framing (RULE 7 — insert verbatim)
@@ -157,7 +157,7 @@ Build the "video_prompt" string in this order:
 5. Movement quality (RULE 5): "steady, biomechanically perfect, absolutely no swinging or momentum. Exactly 2 continuous repetitions."
 6. Cable physics (RULE 8 + RULE 11, only if cable/pulley exercise): describe the cable as a physically constrained taut diagonal that changes angle smoothly with hand position. Embed the CABLE PHYSICS LOCK verbatim. Reinforce: cables are taut throughout entire ROM, angle changes are continuous and geometrically consistent with pulley positions, bilateral cables are always mirrored.
 7. Physics: describe visible physical effects — weight inertia, muscle belly deformation at contraction, tendon stretch at full extension, realistic implement arc.
-8. Background lock (RULE 1): insert verbatim — "BACKGROUND ABSOLUTE LOCK: Pure white seamless background throughout every single frame. The background does NOT change at any point during the movement. No environmental elements, no grey tones, no floor texture, no colour shift. Clinically clean white studio backdrop maintained 100% of the video duration."
+8. Background lock (RULE 1): insert verbatim — "BACKGROUND ABSOLUTE LOCK: Premium white fitness studio throughout every single frame. Bright white walls, polished white concrete floor, soft pendant lighting — maintained 100% of the video duration. The athlete's soft natural floor shadow is consistent and grounded in every frame. The ONLY visible objects are the athlete and the specific exercise equipment. No other machines, no non-white surfaces, no environmental changes at any point during the movement."
 9. Identity consistency: "Preserve exact facial features, skin tone, hair and overall body identity from the input reference frame throughout every frame of the video. No face morphing, no identity drift."`;
 
   const userMessage = `Exercise: ${exerciseName}
