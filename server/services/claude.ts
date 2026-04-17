@@ -73,15 +73,18 @@ The equipment type for this exercise is provided in the user message. You MUST a
 
 - For any other equipment: describe the implement-to-hand connection with the same level of anatomical precision.
 
-RULE 4 — GEOMETRIC CAMERA ANGLE (absolute enforcement):
-Use the exact camera angle instruction provided by the user. Insert it verbatim at the start of the image_prompt, immediately after the format declaration.
-After inserting the camera angle instruction, you MUST add this violation warning verbatim:
-"STRICT ANGLE ENFORCEMENT: A shot that deviates from the specified camera angle is ABSOLUTELY FORBIDDEN and voids the entire prompt. The specified angle is non-negotiable."
-You MUST then describe all anatomy, muscles, limbs and the implement from the perspective of that specific angle. For example:
+RULE 4 — GEOMETRIC CAMERA ANGLE (absolute enforcement — applies to BOTH image_prompt AND video_prompt):
+The camera angle instruction provided by the user is the single highest-priority visual constraint. It overrides any default tendency toward a frontal shot.
+For the IMAGE PROMPT: insert the camera angle instruction verbatim immediately after the format declaration, then add the violation warning below.
+For the VIDEO PROMPT: insert the camera angle instruction verbatim immediately after the FULL BODY FRAMING LOCKED block (step 2 of the video guide), then add the same violation warning. The video model MUST be told the angle — failure to include it causes the model to default to a frontal shot, which is a hard failure.
+Violation warning to insert in BOTH prompts (verbatim):
+"STRICT ANGLE ENFORCEMENT: A shot that deviates from the specified camera angle is ABSOLUTELY FORBIDDEN and voids the entire prompt. If the angle is lateral/side profile, the camera must be at exactly 90° from the frontal plane — the viewer sees the pure side silhouette, NOT the chest, NOT the face. If the angle is posterior/rear, the camera is directly behind. The specified angle is non-negotiable and must be maintained for every single frame."
+You MUST then describe all anatomy, muscles, limbs and the implement from the perspective of that specific angle:
+- For a LATERAL 90° angle: describe the pure side silhouette. Both arms overlap (near arm visible, far arm hidden). Both legs overlap (near leg visible, far leg stacked behind). The sagittal plane is fully exposed. The torso reads as a flat profile. The barbell/implement is seen end-on or protruding to the side. The viewer CANNOT see the athlete's chest, face, or front of body. This is NOT a 3/4 view.
 - For a 45° diagonal angle: describe how the near shoulder partially occludes the far shoulder, how the torso reads as three-dimensional with visible depth, how the barbell protrudes diagonally in space.
-- For a lateral 90° angle: describe the pure side silhouette, limb layering, sagittal plane movement.
-- For a frontal angle: describe bilateral symmetry, equal limb visibility.
-Never describe anatomy in generic frontal terms when a non-frontal angle is specified.
+- For a FRONTAL angle: describe bilateral symmetry, equal limb visibility, chest facing camera.
+- For a POSTERIOR/REAR angle: describe the back musculature, rear of shoulders, posterior chain visible, face NOT visible.
+Never describe anatomy in generic frontal terms when a non-frontal angle is specified. If the angle is lateral, the word "chest" or "face" must not appear in anatomical descriptions.
 
 RULE 5 — VIDEO ANIMATION STRICTNESS:
 The video_prompt MUST start with this exact header:
@@ -152,7 +155,8 @@ VIDEO PROMPT CONSTRUCTION GUIDE
 Build the "video_prompt" string in this order:
 1. Static camera header (RULE 5 — insert verbatim)
 2. Full body framing lock (RULE 9 — insert verbatim, immediately after the static camera header)
-3. Motion description (RULE 10 — MUST match the exact exercise named): full ROM cycle of "${exerciseName}" from start position through peak contraction and back to start. Name every joint involved and confirm the movement pattern matches this specific exercise precisely.
+2b. Camera angle lock (RULE 4 — MANDATORY): insert the camera angle instruction verbatim here, then insert the STRICT ANGLE ENFORCEMENT violation warning verbatim. Without this step the video model defaults to frontal. This is a hard requirement.
+3. Motion description (RULE 10 — MUST match the exact exercise named): full ROM cycle of "${exerciseName}" from start position through peak contraction and back to start. Name every joint involved and confirm the movement pattern matches this specific exercise precisely. Describe joint positions, limb orientation and implement position AS SEEN FROM THE SPECIFIED CAMERA ANGLE.
 4. Tempo: use EXACTLY "2s eccentric lowering, 0.5s pause at bottom, 1.5s concentric drive, 0.5s lockout hold" per repetition (4.5s/rep × 2 reps = 9s total — fits within the 10s video).
 5. Movement quality (RULE 5): "steady, biomechanically perfect, absolutely no swinging or momentum. Exactly 2 continuous repetitions."
 6. Cable physics (RULE 8 + RULE 11, only if cable/pulley exercise): describe the cable as a physically constrained taut diagonal that changes angle smoothly with hand position. Embed the CABLE PHYSICS LOCK verbatim. Reinforce: cables are taut throughout entire ROM, angle changes are continuous and geometrically consistent with pulley positions, bilateral cables are always mirrored.
@@ -167,7 +171,7 @@ Movement pattern: ${movementPattern || 'Not specified'}
 Technique cues: ${techniqueCues.length > 0 ? techniqueCues.join(' | ') : 'None'}
 Correct technique (biomechanics reference): ${baseTechnique}
 Camera angle name: ${cameraAngle}
-Camera angle instruction (insert verbatim into image_prompt): ${cameraModifier}
+Camera angle instruction (insert verbatim into BOTH image_prompt AND video_prompt — step 2 of image guide, step 2b of video guide): ${cameraModifier}
 Coach observations: ${userObservations || 'None — use standard perfect form'}
 Shorts logo visual description (use this VERBATIM in the image_prompt for the outer left thigh logo): ${shortsLogoDescription}
 Shorts logo image reference URL (do NOT pass to Flux — for your context only): ${shortsLogoUrl || 'not provided'}
