@@ -376,35 +376,6 @@ export async function startSeedanceTask(
 }
 
 /**
- * Start a Kling 3.0 motion-control task WITHOUT polling.
- * Passes both the generated image (athlete + white studio background) and a real reference video
- * (exercise demonstration from MuscleWiki) so the model clones the biomechanics onto our avatar.
- * The reference video drives all movement — the input image provides subject appearance and background.
- * Returns the KIE task ID immediately — check status with checkKlingTask().
- */
-export async function startKlingMotionControlTask(
-  imageUrl: string,
-  referenceVideoUrl: string,
-  promptText: string,
-): Promise<string> {
-  const safePrompt = promptText.length > 2500 ? promptText.slice(0, 2500) : promptText;
-  return await createTask({
-    model: 'kling-3.0/motion-control',
-    input: {
-      prompt: safePrompt,
-      input_urls: [imageUrl],
-      video_urls: [referenceVideoUrl],
-      sound: false,
-      mode: '1080p',
-      character_orientation: 'video',
-      // Use the generated image as the background source so the white studio
-      // from our Flux render is preserved instead of the real gym in the reference video.
-      background_source: 'input_image',
-    },
-  });
-}
-
-/**
  * Check a Kling video task once (no loop).
  * Returns the current state so the status endpoint can promote the DB record inline.
  * Also works for Seedance tasks — both use the same /jobs/recordInfo endpoint.
