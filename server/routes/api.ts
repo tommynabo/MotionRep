@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { startGeneration, getGenerationStatus } from '../controllers/generateController.js';
-import { listExercises, createExercise, deleteExercise } from '../controllers/exercisesController.js';
+import { listExercises, createExercise, deleteExercise, searchCandidates, approveCandidate } from '../controllers/exercisesController.js';
 import { listAngles, createAngle, deleteAngle } from '../controllers/anglesController.js';
 import { listGenerations, deleteGeneration } from '../controllers/generationsController.js';
 import { getConfig, upsertConfig } from '../controllers/configController.js';
@@ -15,6 +15,8 @@ router.get('/generate/:id', getGenerationStatus);
 router.get('/exercises', listExercises);
 router.post('/exercises', createExercise);
 router.delete('/exercises/:id', deleteExercise);
+router.post('/exercises/:id/search-candidates', searchCandidates);
+router.put('/exercises/:id/approve-video', approveCandidate);
 
 // Camera angles
 router.get('/angles', listAngles);

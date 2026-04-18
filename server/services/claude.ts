@@ -10,11 +10,10 @@ export interface DualPrompts {
 }
 
 /**
- * Ask Claude to build two complete, ready-to-send prompt strings:
- *   1. imagePrompt — for Flux Kontext Pro (img2img, gym background, face consistency)
- *   2. videoPrompt — for Kling 2.6 (movement, static camera, 2 reps)
- * Follows the "Jeff Nippard Clinical Standard" for every generation.
- * Returns parsed DualPrompts object.
+ * Ask Claude to build the image prompt string following the "Jeff Nippard Clinical Standard".
+ * The video prompt is a hardcoded static template — the motion is driven entirely by the
+ * CC-BY reference video passed to Kling 3.0 motion-control, not by a descriptive prompt.
+ * Returns parsed DualPrompts object (imagePrompt from Claude, videoPrompt hardcoded).
  */
 export async function buildDualPrompts(params: {
   exerciseName: string;
@@ -32,17 +31,17 @@ export async function buildDualPrompts(params: {
 }): Promise<DualPrompts> {
   const { exerciseName, baseTechnique, equipment, muscleGroups, movementPattern, techniqueCues, cameraAngle, cameraModifier, userObservations, shortsLogoUrl, shortsLogoDescription, masterPromptTemplate } = params;
 
-  const systemMessage = `You are an expert Biomechanics Coach and Master AI Prompt Engineer for fitness video generation.
-Your task is to generate two complete, ready-to-send prompt strings following the "Jeff Nippard Clinical Standard".
+  const systemMessage = `You are an expert Biomechanics Coach and Master AI Prompt Engineer for fitness image generation.
+Your task is to generate one complete, ready-to-send image prompt string following the "Jeff Nippard Clinical Standard".
 
 OUTPUT RULES:
-- Output ONLY a valid JSON object with exactly two keys: "image_prompt" and "video_prompt".
-- Both values must be fully assembled plain strings — not objects or nested structures.
+- Output ONLY a valid JSON object with exactly one key: "image_prompt".
+- The value must be a fully assembled plain string — not an object or nested structure.
 - No markdown fences, no preamble, no trailing text outside the JSON.
 - All content must be in English.
 - Be biomechanically precise and clinically accurate.
-- CRITICAL CHARACTER BUDGET: "image_prompt" MUST NOT exceed 2900 characters. "video_prompt" MUST NOT exceed 2400 characters. These are hard limits — do NOT exceed them under any circumstance.
-- WRITE TO FIT: Plan the content of each prompt to be complete and self-contained within its character budget. Never truncate mid-sentence. Every prompt must end with a complete, grammatically closed sentence. Prioritise the most critical visual and biomechanical information. Be concise but precise — cut filler words, not essential biomechanical detail.
+- CRITICAL CHARACTER BUDGET: "image_prompt" MUST NOT exceed 2900 characters. This is a hard limit — do NOT exceed it under any circumstance.
+- WRITE TO FIT: Plan the content to be complete and self-contained within the character budget. Never truncate mid-sentence. Every prompt must end with a complete, grammatically closed sentence. Prioritise the most critical visual and biomechanical information. Be concise but precise — cut filler words, not essential biomechanical detail.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CORE RULES — JEFF NIPPARD CLINICAL STANDARD
@@ -167,24 +166,7 @@ Build the "image_prompt" string in this order:
 8. Background (RULE 1): insert verbatim — "Premium rented fitness studio: bright white walls, smooth polished white concrete floor, large pendant lights on a white ceiling casting soft even illumination. The athlete casts a soft natural shadow on the floor beneath them. The ONLY objects visible are the athlete and the equipment for this exercise. No other machines, no extra people, no non-white surfaces visible. Exclusive high-end studio look — minimal, architectural, premium."
 9. Style: "Hyper-realistic instructional fitness photograph, 8K resolution, sharp focus on full body, no artistic filters, no motion blur."
 10. Coaching notes: include userObservations if provided, otherwise "Perfect standard form."
-11. Full body framing (RULE 7 — insert verbatim)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-VIDEO PROMPT CONSTRUCTION GUIDE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Build the "video_prompt" string in this order:
-1. Static camera header (RULE 5 — insert verbatim)
-2. Full body framing lock (RULE 9 — insert verbatim, immediately after the static camera header)
-2b. Camera angle lock (RULE 4 — MANDATORY): insert the camera angle instruction verbatim here, then insert the STRICT ANGLE ENFORCEMENT violation warning verbatim. Without this step the video model defaults to frontal. This is a hard requirement.
-3. Motion description (RULE 10 + RULE 11 — MUST match the exact exercise named): 
-For DEADLIFT VARIANTS: "The athlete performs 4 complete repetitions of ${exerciseName}. STARTING POSITION (frame 0s): The athlete is in the lockout position — standing fully upright with hips and knees locked out at 0° flexion, shoulders directly over the barbell, barbell held at mid-thigh/knee height in both hands, spine in perfect neutral from cervical through lumbar, arms fully extended with 0° elbow flexion. The athlete holds this lockout position for 0.25s. ECCENTRIC PHASE (0.25s→1.75s): The athlete initiates the descent by breaking at the hips first (hip-dominant hinge pattern), knees flexing to approximately 15-20°, torso flexing forward to approximately 45° from vertical, maintaining flat back and neutral spine, hips descending toward the floor, the barbell tracking in a vertical plane against the athlete's shins/thighs throughout the descent. The descent takes exactly 1.5 seconds. BOTTOM POSITION (1.75s→2s): The athlete reaches the setup position with hips at full flexion, knees flexed approximately 20°, torso at 45° from vertical, barbell on the floor, hands still gripping the bar. Brief pause for 0.25s. CONCENTRIC PHASE (2s→3s): The athlete drives through the floor via the legs and hips simultaneously, extending knees and hips together, maintaining neutral spine and flat back, the barbell tracking vertically, the athlete rising to standing — this phase takes exactly 1 second. LOCKOUT HOLD (3s→3.25s): The athlete completes the ascent, re-establishing full lockout position — hips locked 0°, knees locked 0°, shoulders over bar, arms extended — and holds this position for 0.25s. This complete cycle (3.25s) repeats exactly 4 times for a 13-second total video. Joint angles, barbell path, and body segment positions are precisely consistent in all 4 repetitions."
-For other EXERCISE VARIANTS: full ROM cycle of "${exerciseName}" from start position through peak contraction and back to start per RULE 11. Name every joint involved and confirm the movement pattern matches this specific exercise precisely. Describe joint positions, limb orientation and implement position AS SEEN FROM THE SPECIFIED CAMERA ANGLE.
-4. Tempo: For all exercises, use EXACTLY "1.5s eccentric lowering, 0.25s pause at bottom, 1s concentric drive, 0.25s lockout/contraction hold" per repetition (3s/rep × 4 reps = 12s total — fits exactly within the 12s video budget).
-5. Movement quality (RULE 5): "steady, biomechanically perfect, absolutely no swinging or momentum. Exactly 4 continuous repetitions."
-6. Cable physics (RULE 8 + RULE 11, only if cable/pulley exercise): describe the cable as a physically constrained taut diagonal that changes angle smoothly with hand position. Embed the CABLE PHYSICS LOCK verbatim. Reinforce: cables are taut throughout entire ROM, angle changes are continuous and geometrically consistent with pulley positions, bilateral cables are always mirrored.
-7. Physics: describe visible physical effects — weight inertia, muscle belly deformation at contraction, tendon stretch at full extension, realistic implement arc.
-8. Background lock (RULE 1): insert verbatim — "BACKGROUND ABSOLUTE LOCK: Premium white fitness studio throughout every single frame. Bright white walls, polished white concrete floor, soft pendant lighting — maintained 100% of the video duration. The athlete's soft natural floor shadow is consistent and grounded in every frame. The ONLY visible objects are the athlete and the specific exercise equipment. No other machines, no non-white surfaces, no environmental changes at any point during the movement."
-9. Identity consistency: "Preserve exact facial features, skin tone, hair and overall body identity from the input reference frame throughout every frame of the video. No face morphing, no identity drift."`;
+11. Full body framing (RULE 7 — insert verbatim)`;
 
   const userMessage = `Exercise: ${exerciseName}
 Equipment type: ${equipment}
@@ -193,23 +175,23 @@ Movement pattern: ${movementPattern || 'Not specified'}
 Technique cues: ${techniqueCues.length > 0 ? techniqueCues.join(' | ') : 'None'}
 Correct technique (biomechanics reference): ${baseTechnique}
 Camera angle name: ${cameraAngle}
-Camera angle instruction (insert verbatim into BOTH image_prompt AND video_prompt — step 2 of image guide, step 2b of video guide): ${cameraModifier}
+Camera angle instruction (insert verbatim into the image_prompt — step 2 of the image guide): ${cameraModifier}
 Coach observations: ${userObservations || 'None — use standard perfect form'}
 Shorts logo visual description (use this VERBATIM in the image_prompt for the outer left thigh logo): ${shortsLogoDescription}
 Shorts logo image reference URL (do NOT pass to Flux — for your context only): ${shortsLogoUrl || 'not provided'}
 Style/environment supplementary reference: ${masterPromptTemplate}
 
-Generate the dual prompts now following the Jeff Nippard Clinical Standard. 
+Generate the image_prompt now following the Jeff Nippard Clinical Standard.
 
 CRITICAL ENFORCEMENT FOR THIS GENERATION:
 - RULE 11 (Static Image Position Anchor): The image MUST show the athlete in the specific position defined in RULE 11 for "${exerciseName}". For deadlifts, ONLY the lockout position is permitted — never setup, never mid-pull.
 - RULE 6 (Implement Visibility): The barbell MUST be clearly visible, gripped in both hands with realistic finger definition, held at mid-thigh height (deadlift) or the appropriate position for this exercise. The implement MUST be the focal anchor of the image.
 - RULE 3 (Grip/Anatomy): Apply the correct grip anatomy variant for equipment type "${equipment}" (barbell = both hands with thumbs wrapped, realistic fingers).
-- RULE 10 (Exercise Accuracy): The ONLY movement in both image and video must be "${exerciseName}" — no other exercise pattern is permitted.
+- RULE 10 (Exercise Accuracy): The ONLY movement shown must be "${exerciseName}" — no other exercise pattern is permitted.
 
-Pay special attention to RULE 3 (grip/implement) and apply the correct variant for the equipment type "${equipment}". If equipment involves cables or pulleys, enforce RULE 8 and RULE 11 fully — cable geometry must be physically accurate, continuously deforming, and bilaterally symmetric throughout the video.
+Pay special attention to RULE 3 (grip/implement) and apply the correct variant for the equipment type "${equipment}". If equipment involves cables or pulleys, enforce RULE 8 fully.
 
-⚠️ TRIPLE-CHECK BEFORE OUTPUTTING: Verify that the image_prompt shows ONLY the ${exerciseName} exercise in the position defined by RULE 11, with the barbell prominently visible and gripped in the athlete's hands.`;
+⚠️ TRIPLE-CHECK BEFORE OUTPUTTING: Verify that the image_prompt shows ONLY the ${exerciseName} exercise in the position defined by RULE 11, with the implement prominently visible and gripped in the athlete's hands.`;
 
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',
@@ -223,7 +205,7 @@ Pay special attention to RULE 3 (grip/implement) and apply the correct variant f
     throw new Error('Unexpected response type from Anthropic API');
   }
 
-  let parsed: { image_prompt: string; video_prompt: string };
+  let parsed: { image_prompt: string };
   try {
     const raw = content.text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     parsed = JSON.parse(raw);
@@ -231,21 +213,28 @@ Pay special attention to RULE 3 (grip/implement) and apply the correct variant f
     throw new Error(`Claude returned invalid JSON: ${content.text.slice(0, 200)}`);
   }
 
-  if (!parsed.image_prompt || !parsed.video_prompt) {
-    throw new Error('Claude JSON missing required "image_prompt" or "video_prompt" keys');
+  if (!parsed.image_prompt) {
+    throw new Error('Claude JSON missing required "image_prompt" key');
   }
 
   // Hard ceiling matching KIE Flux Kontext API limit (3000 chars).
   // Claude is told 2900 — this catches any minor overrun before hitting the API.
   const MAX_IMAGE_PROMPT_LENGTH = 2950;
-  const MAX_VIDEO_PROMPT_LENGTH = 2450;
 
   const imagePrompt = parsed.image_prompt.length > MAX_IMAGE_PROMPT_LENGTH
     ? parsed.image_prompt.slice(0, MAX_IMAGE_PROMPT_LENGTH)
     : parsed.image_prompt;
-  const videoPrompt = parsed.video_prompt.length > MAX_VIDEO_PROMPT_LENGTH
-    ? parsed.video_prompt.slice(0, MAX_VIDEO_PROMPT_LENGTH)
-    : parsed.video_prompt;
+
+  // The video prompt is a static template — motion is driven entirely by the CC-BY
+  // reference video passed to Kling 3.0 motion-control, not by a descriptive prompt.
+  const videoPrompt =
+    'ULTRA STATIC CAMERA. Animate the athlete from the input image matching the exact ' +
+    'biomechanics, tempo, and barbell path of the reference video. ' +
+    'Perform exactly 4 continuous repetitions. ' +
+    'BACKGROUND ABSOLUTE LOCK: Maintain the white studio background from the input image ' +
+    'throughout every single frame. Do not change the environment, lighting, or background ' +
+    'at any point during the video. Preserve exact facial features, skin tone, and body ' +
+    'identity from the input image throughout every frame. No face morphing, no identity drift.';
 
   return {
     imagePrompt,

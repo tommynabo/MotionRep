@@ -376,6 +376,38 @@ export async function startSeedanceTask(
 }
 
 /**
+ * Start a Kling 3.0 motion-control task WITHOUT polling.
+ * Motion-control drives the athlete's biomechanics frame-by-frame from a reference
+ * MP4 video while using the generated Flux image as the subject + background source.
+ * background_source: 'input_image' preserves the white studio backdrop from the
+ * Flux image and discards the real-gym background of the reference video.
+ *
+ * @param imageUrl     - Refined Flux Kontext image URL (subject + white studio background)
+ * @param directMp4Url - Direct MP4 stream URL of the CC-BY YouTube reference video
+ * @param promptText   - Short static-camera + background-lock prompt
+ * @returns KIE task ID — check progress with checkKlingTask()
+ */
+export async function startSeedance2MotionTask(
+  imageUrl: string,
+  directMp4Url: string,
+  promptText: string,
+): Promise<string> {
+  const safePrompt = promptText.length > 2500 ? promptText.slice(0, 2500) : promptText;
+  return await createTask({
+    model: 'kling-3.0/motion-control',
+    input: {
+      prompt: safePrompt,
+      input_urls: [imageUrl],
+      video_urls: [directMp4Url],
+      sound: false,
+      mode: '1080p',
+      character_orientation: 'video',
+      background_source: 'input_image',
+    },
+  });
+}
+
+/**
  * Check a Kling video task once (no loop).
  * Returns the current state so the status endpoint can promote the DB record inline.
  * Also works for Seedance tasks — both use the same /jobs/recordInfo endpoint.

@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import { waitUntil } from '@vercel/functions';
 import { supabase } from '../lib/supabase.js';
 import { buildDualPrompts } from '../services/claude.js';
-import { generateImageFromReference, refineImageWithLogoAndBackground, startSeedanceTask, checkKlingTask } from '../services/kie.js';
+import { generateImageFromReference, refineImageWithLogoAndBackground, startSeedance2MotionTask, checkKlingTask } from '../services/kie.js';
+import { getDirectMp4Url } from '../services/videoExtractor.js';
 
 export async function startGeneration(req: Request, res: Response): Promise<void> {
   const { exercise_id, angle_id, user_observations } = req.body as {
@@ -22,7 +23,7 @@ export async function startGeneration(req: Request, res: Response): Promise<void
 
   // Fetch exercise, angle, master prompt and shorts logo
   const [exerciseResult, angleResult, masterPromptResult, shortsLogoResult, shortsLogoDescResult] = await Promise.all([
-    supabase.from('exercises').select('name, base_technique, equipment, muscle_groups, movement_pattern, technique_cues').eq('id', exercise_id).single(),
+    supabase.from('exercises').select('name, base_technique, equipment, muscle_groups, movement_pattern, technique_cues, reference_video_url').eq('id', exercise_id).single(),
     supabase.from('camera_angles').select('name, prompt_modifier').eq('id', angle_id).single(),
     supabase.from('config').select('value').eq('key', 'master_prompt').single(),
     supabase.from('config').select('value').eq('key', 'shorts_logo_url').single(),
@@ -91,7 +92,7 @@ export async function startGeneration(req: Request, res: Response): Promise<void
 
 async function runPipeline(params: {
   generationId: string;
-  exercise: { name: string; base_technique: string; equipment: string | null; muscle_groups: string[] | null; movement_pattern: string | null; technique_cues: string[] | null };
+  exercise: { name: string; base_technique: string; equipment: string | null; muscle_groups: string[] | null; movement_pattern: string | null; technique_cues: string[] | null; reference_video_url: string | null };
   angle: { name: string; prompt_modifier: string };
   userObservations: string;
   masterPrompt: string;
@@ -102,6 +103,14 @@ async function runPipeline(params: {
   const { generationId, exercise, angle, userObservations, masterPrompt, shortsLogoUrl, shortsLogoDescription, referenceImageUrl } = params;
 
   try {
+    // Guard: exercise must have an approved reference video before the pipeline can run.
+    if (!exercise.reference_video_url?.trim()) {
+      throw new Error(
+        `Exercise "${exercise.name}" has no approved reference video. ` +
+        `Use POST /api/exercises/:id/search-candidates to find CC-BY candidates, ` +
+        `then PUT /api/exercises/:id/approve-video to approve one before generating.`,
+      );
+    }
     // STEP A: Build dual JSON prompts with Claude
     console.log(`[Pipeline ${generationId}] Step A: Building dual prompts with Claude...`);
     await supabase.from('generations').update({ status: 'prompting' }).eq('id', generationId);
@@ -147,15 +156,20 @@ async function runPipeline(params: {
       .update({ image_url: refinedImageUrl })
       .eq('id', generationId);
 
-    // STEP C: Start Seedance 2 video task (non-blocking) — used for all exercises.
-    // Seedance 2 delivers superior movement quality and cable/rope physics.
-    console.log(`[Pipeline ${generationId}] Step C: Launching Seedance 2 task (non-blocking)...`);
-    const seedanceTaskId = await startSeedanceTask(refinedImageUrl, videoPrompt);
+    // STEP C: Resolve direct MP4 URL from the approved CC-BY YouTube reference video.
+    console.log(`[Pipeline ${generationId}] Step C: Resolving direct MP4 from reference video...`);
+    const directMp4Url = await getDirectMp4Url(exercise.reference_video_url);
+
+    // STEP D: Start Kling 3.0 motion-control task (non-blocking).
+    // Passes the refined Flux image (subject + white studio background) and the direct MP4
+    // (biomechanical reference). background_source: 'input_image' preserves the white backdrop.
+    console.log(`[Pipeline ${generationId}] Step D: Launching Kling 3.0 motion-control task (non-blocking)...`);
+    const seedanceTaskId = await startSeedance2MotionTask(refinedImageUrl, directMp4Url, videoPrompt);
     await supabase
       .from('generations')
       .update({ status: 'animating', kie_video_task_id: seedanceTaskId })
       .eq('id', generationId);
-    console.log(`[Pipeline ${generationId}] Seedance 2 task launched: ${seedanceTaskId}. Polling deferred to status endpoint.`);
+    console.log(`[Pipeline ${generationId}] Kling 3.0 motion-control task launched: ${seedanceTaskId}. Polling deferred to status endpoint.`);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error(`[Pipeline ${generationId}] Failed:`, message);
