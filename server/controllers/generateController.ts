@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import { waitUntil } from '@vercel/functions';
 import { supabase } from '../lib/supabase.js';
 import { buildDualPrompts } from '../services/claude.js';
-import { generateImageFromReference, refineImageWithLogoAndBackground, startSeedanceTask, checkKlingTask } from '../services/kie.js';
+import { fetchReferenceVideoUrl } from '../services/musclewiki.js';
+import { generateImageFromReference, refineImageWithLogoAndBackground, startKlingMotionControlTask, checkKlingTask } from '../services/kie.js';
 
 export async function startGeneration(req: Request, res: Response): Promise<void> {
   const { exercise_id, angle_id, user_observations } = req.body as {
@@ -22,7 +23,7 @@ export async function startGeneration(req: Request, res: Response): Promise<void
 
   // Fetch exercise, angle, master prompt and shorts logo
   const [exerciseResult, angleResult, masterPromptResult, shortsLogoResult, shortsLogoDescResult] = await Promise.all([
-    supabase.from('exercises').select('name, base_technique, equipment, muscle_groups, movement_pattern, technique_cues').eq('id', exercise_id).single(),
+    supabase.from('exercises').select('name, name_en, base_technique, equipment, muscle_groups, movement_pattern, technique_cues').eq('id', exercise_id).single(),
     supabase.from('camera_angles').select('name, prompt_modifier').eq('id', angle_id).single(),
     supabase.from('config').select('value').eq('key', 'master_prompt').single(),
     supabase.from('config').select('value').eq('key', 'shorts_logo_url').single(),
@@ -91,7 +92,7 @@ export async function startGeneration(req: Request, res: Response): Promise<void
 
 async function runPipeline(params: {
   generationId: string;
-  exercise: { name: string; base_technique: string; equipment: string | null; muscle_groups: string[] | null; movement_pattern: string | null; technique_cues: string[] | null };
+  exercise: { name: string; name_en: string | null; base_technique: string; equipment: string | null; muscle_groups: string[] | null; movement_pattern: string | null; technique_cues: string[] | null };
   angle: { name: string; prompt_modifier: string };
   userObservations: string;
   masterPrompt: string;
@@ -147,15 +148,42 @@ async function runPipeline(params: {
       .update({ image_url: refinedImageUrl })
       .eq('id', generationId);
 
-    // STEP C: Start Seedance 2 video task (non-blocking) — used for all exercises.
-    // Seedance 2 delivers superior movement quality and cable/rope physics.
-    console.log(`[Pipeline ${generationId}] Step C: Launching Seedance 2 task (non-blocking)...`);
-    const seedanceTaskId = await startSeedanceTask(refinedImageUrl, videoPrompt);
+    // STEP C-pre: Fetch the MuscleWiki reference video for motion transfer.
+    // If not found, abort immediately — generating without a reference video produces low-quality
+    // results and wastes API credits. A developer must add the video before retrying.
+    console.log(`[Pipeline ${generationId}] Step C-pre: Fetching MuscleWiki reference video...`);
+    // Use the English exercise name for the MuscleWiki search (better match rate).
+    const exerciseSearchName = exercise.name_en ?? exercise.name;
+    let referenceVideoUrl: string;
+    try {
+      referenceVideoUrl = await fetchReferenceVideoUrl(exerciseSearchName, angle.name);
+      console.log(`[Pipeline ${generationId}] Reference video ready: ${referenceVideoUrl}`);
+    } catch (refErr) {
+      const refMessage = refErr instanceof Error ? refErr.message : 'Unknown error fetching reference video';
+      console.error(`[Pipeline ${generationId}] Reference video not found — aborting:`, refMessage);
+      await supabase
+        .from('generations')
+        .update({
+          status: 'failed',
+          error_message:
+            `⚠️ Reference video not found for "${exercise.name}". ` +
+            `A developer must add this exercise's reference video before it can be animated. ` +
+            `Details: ${refMessage}`,
+          error_step: 'kling',
+        })
+        .eq('id', generationId);
+      return;
+    }
+
+    // STEP C: Start Kling 3.0 motion-control task (non-blocking).
+    // The model clones the biomechanics from the reference video onto our Flux-generated avatar.
+    console.log(`[Pipeline ${generationId}] Step C: Launching Kling 3.0 motion-control task (non-blocking)...`);
+    const motionTaskId = await startKlingMotionControlTask(refinedImageUrl, referenceVideoUrl, videoPrompt);
     await supabase
       .from('generations')
-      .update({ status: 'animating', kie_video_task_id: seedanceTaskId })
+      .update({ status: 'animating', kie_video_task_id: motionTaskId, kling_model: 'kling-3.0/motion-control' })
       .eq('id', generationId);
-    console.log(`[Pipeline ${generationId}] Seedance 2 task launched: ${seedanceTaskId}. Polling deferred to status endpoint.`);
+    console.log(`[Pipeline ${generationId}] Motion-control task launched: ${motionTaskId}. Polling deferred to status endpoint.`);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error(`[Pipeline ${generationId}] Failed:`, message);
