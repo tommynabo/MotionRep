@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ThumbsUp, ThumbsDown, AlertCircle, CheckCircle } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, AlertCircle, CheckCircle, Play, X, Search, Camera, Loader2 } from 'lucide-react';
 
 interface Exercise {
   id: string;
@@ -31,6 +31,7 @@ export function CurationPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [selectedVideoPreview, setSelectedVideoPreview] = useState<YouTubeCandidate | null>(null);
 
   // Load exercises and angles on mount
   useEffect(() => {
@@ -123,166 +124,236 @@ export function CurationPage() {
 
   const selectedExercise = exercises.find(e => e.id === selectedExerciseId);
 
+  // Clear success toast after 4 seconds
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(''), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">📹 Video Curation</h1>
-          <p className="text-slate-600">Find and approve Creative Commons exercise videos as motion reference</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Video Curation</h1>
+        <p className="text-zinc-400 mt-2">Find and approve Creative Commons exercise videos as reference for motion transfer</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Search Controls - Left Column */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="bg-dark-surface border border-dark-border rounded-2xl p-6 shadow-lg">
+            <form onSubmit={(e) => { e.preventDefault(); handleSearchCandidates(); }} className="space-y-6">
+              {/* Exercise select */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                  <Search className="w-3 h-3" /> Seleccionar Ejercicio
+                </label>
+                <select
+                  value={selectedExerciseId}
+                  onChange={(e) => setSelectedExerciseId(e.target.value)}
+                  className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-xl text-white appearance-none focus:outline-none focus:ring-1 focus:ring-neon-green focus:border-neon-green transition-colors"
+                >
+                  <option value="">Elige un ejercicio...</option>
+                  {exercises.map(ex => (
+                    <option key={ex.id} value={ex.id}>{ex.name}</option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-zinc-500">
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                </div>
+              </div>
+
+              {/* Camera angle select */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                  <Camera className="w-3 h-3" /> Ángulo de Cámara (Opcional)
+                </label>
+                <select
+                  value={selectedAngleId}
+                  onChange={(e) => setSelectedAngleId(e.target.value)}
+                  className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-xl text-white appearance-none focus:outline-none focus:ring-1 focus:ring-neon-green focus:border-neon-green transition-colors"
+                >
+                  <option value="">Cualquier ángulo...</option>
+                  {angles.map(an => (
+                    <option key={an.id} value={an.id}>{an.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Error message */}
+              {error && (
+                <div className="flex items-center gap-2 text-red-400 text-sm bg-red-900/20 border border-red-800/40 rounded-xl px-4 py-3">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
+                </div>
+              )}
+
+              {/* Search button */}
+              <button
+                type="submit"
+                disabled={!selectedExerciseId || loading}
+                className="w-full flex items-center justify-center gap-2 py-4 px-4 rounded-xl text-sm font-bold text-black bg-neon-green hover:bg-[#00e65c] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-bg focus:ring-neon-green transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_0_20px_rgba(0,255,102,0.3)] mt-4"
+              >
+                {loading ? (
+                  <><Loader2 className="w-5 h-5 animate-spin" /> Buscando...</>
+                ) : (
+                  <><Search className="w-5 h-5" /> BUSCAR 5 VÍDEOS</>
+                )}
+              </button>
+            </form>
+          </div>
         </div>
 
-        {/* Error Toast */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div className="text-red-800">{error}</div>
-          </div>
-        )}
+        {/* Candidates Grid - Right Column */}
+        <div className="lg:col-span-7">
+          {candidates.length > 0 ? (
+            <div className="bg-dark-surface border border-dark-border rounded-2xl p-6 shadow-lg space-y-4 h-full">
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4">
+                  {candidates.length} Candidatos Encontrados
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-2 gap-3">
+                  {candidates.map((candidate) => (
+                    <div key={candidate.videoId} className="bg-dark-bg border border-dark-border rounded-xl overflow-hidden hover:border-neon-green/50 transition-colors">
+                      {/* Thumbnail with play button overlay */}
+                      <div className="relative w-full aspect-video bg-dark-bg overflow-hidden cursor-pointer group">
+                        <img
+                          src={candidate.thumbnail}
+                          alt={candidate.title}
+                          className="w-full h-full object-cover group-hover:brightness-75 transition-all"
+                        />
+                        <button
+                          onClick={() => setSelectedVideoPreview(candidate)}
+                          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Ver vídeo"
+                        >
+                          <div className="w-12 h-12 bg-neon-green rounded-full flex items-center justify-center shadow-lg">
+                            <Play className="w-6 h-6 text-black fill-black" />
+                          </div>
+                        </button>
+                      </div>
 
-        {/* Success Toast */}
-        {success && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
-            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-            <div className="text-green-800">{success}</div>
-          </div>
-        )}
+                      {/* Title */}
+                      <div className="p-3 border-t border-dark-border">
+                        <p className="text-xs font-medium text-zinc-300 line-clamp-2">
+                          {candidate.title}
+                        </p>
+                      </div>
 
-        {/* Search Controls */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Select Exercise
-              </label>
-              <select
-                value={selectedExerciseId}
-                onChange={(e) => setSelectedExerciseId(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Choose an exercise...</option>
-                {exercises.map(ex => (
-                  <option key={ex.id} value={ex.id}>{ex.name}</option>
-                ))}
-              </select>
-            </div>
+                      {/* Actions */}
+                      <div className="px-3 pb-3 flex gap-2">
+                        <button
+                          onClick={() => handleApproveCandidates(candidate)}
+                          className="flex-1 px-2 py-2 bg-neon-green/10 text-neon-green text-xs font-semibold rounded-lg hover:bg-neon-green/20 transition flex items-center justify-center gap-1 border border-neon-green/30"
+                          title="Aprobar vídeo"
+                        >
+                          <ThumbsUp className="w-3 h-3" /> Aprobar
+                        </button>
+                        <button
+                          onClick={() => handleRejectCandidate(candidate.videoId)}
+                          className="flex-1 px-2 py-2 bg-red-500/10 text-red-400 text-xs font-semibold rounded-lg hover:bg-red-500/20 transition flex items-center justify-center gap-1 border border-red-500/30"
+                          title="Rechazar vídeo"
+                        >
+                          <ThumbsDown className="w-3 h-3" /> Rechazar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Select Camera Angle (optional)
-              </label>
-              <select
-                value={selectedAngleId}
-                onChange={(e) => setSelectedAngleId(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Any angle...</option>
-                {angles.map(an => (
-                  <option key={an.id} value={an.id}>{an.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <button
-            onClick={handleSearchCandidates}
-            disabled={!selectedExerciseId || loading}
-            className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            {loading ? 'Searching...' : 'BUSCAR 5 VÍDEOS'}
-          </button>
-        </div>
-
-        {/* Candidates Grid */}
-        {candidates.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-900 mb-4">
-              {candidates.length} Candidatos Encontrados
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              {candidates.map((candidate) => (
-                <div key={candidate.videoId} className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition">
-                  {/* Thumbnail */}
-                  <div className="relative w-full aspect-video bg-slate-200 overflow-hidden">
-                    <img
-                      src={candidate.thumbnail}
-                      alt={candidate.title}
-                      className="w-full h-full object-cover"
-                    />
+              {/* Approved Video Display */}
+              {approvedVideo && (
+                <div className="mt-6 pt-6 border-t border-dark-border space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-neon-green" />
+                    <h4 className="text-sm font-bold text-neon-green">Video Aprobado</h4>
                   </div>
-
-                  {/* Title */}
-                  <div className="p-3">
-                    <p className="text-sm font-medium text-slate-900 line-clamp-2">
-                      {candidate.title}
-                    </p>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="p-3 border-t border-slate-200 flex gap-2">
-                    <button
-                      onClick={() => handleApproveCandidates(candidate)}
-                      className="flex-1 px-3 py-2 bg-green-100 text-green-700 font-semibold rounded-lg hover:bg-green-200 transition flex items-center justify-center gap-1"
-                      title="Approve this video"
+                  <div className="bg-dark-bg rounded-lg p-3 border border-neon-green/20">
+                    <p className="text-xs text-zinc-400 mb-2 line-clamp-2">{approvedVideo.title}</p>
+                    <a
+                      href={approvedVideo.youtubeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-neon-green hover:underline break-all"
                     >
-                      <ThumbsUp className="w-4 h-4" />
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleRejectCandidate(candidate.videoId)}
-                      className="flex-1 px-3 py-2 bg-red-100 text-red-700 font-semibold rounded-lg hover:bg-red-200 transition flex items-center justify-center gap-1"
-                      title="Reject this video"
-                    >
-                      <ThumbsDown className="w-4 h-4" />
-                      Reject
-                    </button>
+                      {approvedVideo.youtubeUrl}
+                    </a>
+                    <p className="text-xs text-neon-green/70 mt-2">✅ Listo para el Generador</p>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        )}
-
-        {/* Approved Video Display */}
-        {approvedVideo && (
-          <div className="bg-white rounded-lg shadow-sm border border-green-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-              <h3 className="text-lg font-bold text-green-700">Video Aprobado</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-1">
-                <img
-                  src={approvedVideo.thumbnail}
-                  alt="Approved"
-                  className="w-full rounded-lg border border-slate-200"
-                />
+          ) : (
+            <div className="bg-dark-surface border border-dark-border rounded-2xl p-6 shadow-lg h-full flex flex-col items-center justify-center min-h-[500px]">
+              <div className="w-16 h-16 bg-dark-bg rounded-full flex items-center justify-center mb-4 border border-dark-border">
+                <Search className="w-6 h-6 text-zinc-600" />
               </div>
-              <div className="md:col-span-2">
-                <p className="text-sm text-slate-600 mb-2">
-                  <strong>Título:</strong> {approvedVideo.title}
-                </p>
-                <p className="text-sm text-slate-600 mb-4">
-                  <strong>URL:</strong>{' '}
-                  <a
-                    href={approvedVideo.youtubeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline break-all"
-                  >
-                    {approvedVideo.youtubeUrl}
-                  </a>
-                </p>
-                <p className="text-sm text-slate-600">
-                  <strong>Ejercicio:</strong> {selectedExercise?.name}
-                </p>
-                <p className="text-sm text-green-600 mt-4">
-                  ✅ Listo para usar en el Generador de Vídeos
-                </p>
-              </div>
+              <p className="text-zinc-500 font-medium">Esperando búsqueda...</p>
+              <p className="text-zinc-600 text-sm mt-1">Busca vídeos para ver candidatos aquí</p>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Success Toast */}
+      {success && (
+        <div className="fixed bottom-6 right-6 flex items-center gap-3 bg-neon-green/10 border border-neon-green/30 rounded-xl px-4 py-3 text-neon-green text-sm font-medium animate-in slide-in-from-bottom-4">
+          <CheckCircle className="w-5 h-5 flex-shrink-0" />
+          {success}
+        </div>
+      )}
+
+      {/* Video Preview Modal */}
+      {selectedVideoPreview && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-dark-surface border border-dark-border rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-dark-border">
+              <h3 className="text-sm font-bold text-zinc-300 line-clamp-1">{selectedVideoPreview.title}</h3>
+              <button
+                onClick={() => setSelectedVideoPreview(null)}
+                className="p-1.5 hover:bg-dark-bg rounded-lg transition text-zinc-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Video Player */}
+            <div className="bg-black aspect-video flex items-center justify-center">
+              <iframe
+                width="100%"
+                height="100%"
+                src={`https://www.youtube.com/embed/${selectedVideoPreview.videoId}?autoplay=1`}
+                title={selectedVideoPreview.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="w-full h-full"
+              />
+            </div>
+            
+            {/* Footer */}
+            <div className="p-4 border-t border-dark-border flex gap-3">
+              <button
+                onClick={() => handleApproveCandidates(selectedVideoPreview)}
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold text-black bg-neon-green hover:bg-[#00e65c] transition-all"
+              >
+                <ThumbsUp className="w-4 h-4" /> Aprobar este vídeo
+              </button>
+              <button
+                onClick={() => {
+                  handleRejectCandidate(selectedVideoPreview.videoId);
+                  setSelectedVideoPreview(null);
+                }}
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-all"
+              >
+                <ThumbsDown className="w-4 h-4" /> Rechazar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

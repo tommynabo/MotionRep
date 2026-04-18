@@ -16,7 +16,7 @@ export interface YouTubeCandidate {
 
 /**
  * Search YouTube for exercise reference videos filtered to Creative Commons license only.
- * Returns the top 3 results (videoId, title, thumbnail, full YouTube URL).
+ * Returns the top 5 results (videoId, title, thumbnail, full YouTube URL).
  */
 export async function searchExerciseVideos(exerciseName: string): Promise<YouTubeCandidate[]> {
   const apiKey = process.env.YOUTUBE_API_KEY;
@@ -30,7 +30,7 @@ export async function searchExerciseVideos(exerciseName: string): Promise<YouTub
     type: 'video',
     videoLicense: 'creativeCommon',
     videoDuration: 'short',
-    maxResults: '3',
+    maxResults: '5',
     relevanceLanguage: 'en',
     key: apiKey,
   });

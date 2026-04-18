@@ -20,6 +20,7 @@ export default function App() {
       <Layout onLogout={() => setIsLoggedIn(false)}>
         <Routes>
           <Route path="/" element={<Navigate to="/generador" replace />} />
+          <Route path="/curator" element={<CurationPage />} />
           <Route path="/generador" element={<Generator />} />
           <Route path="/curator" element={<CurationPage />} />
           <Route path="/base" element={<Database />} />
