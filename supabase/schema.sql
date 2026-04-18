@@ -286,11 +286,8 @@ DO $$ BEGIN CREATE POLICY "service_all_exercise_tags"  ON public.exercise_tags  
 
 INSERT INTO public.camera_angles (name, name_en, prompt_modifier, sort_order) VALUES
   ('Frontal',     'Front view',    'shot from a straight frontal angle, camera facing the subject directly',           1),
-  ('Perfil 45°',  '45 diagonal',  'shot from a 45-degree diagonal side angle, showing depth and form',              2),
-  ('Lateral 90°', 'Side profile', 'shot from a strict 90-degree side profile, full lateral view',                  3),
-  ('Cenital',     'Overhead',     'overhead top-down shot from directly above the subject',                           4),
-  ('Low Angle',   'Low angle',    'low angle shot from near the floor looking up, dramatic perspective',              5),
-  ('Posterior',   'Rear view',    'shot from directly behind the athlete, showing back muscles and posterior chain',  6)
+  ('Lateral 90°', 'Side profile', 'shot from a strict 90-degree side profile, full lateral view',                  2),
+  ('Posterior',   'Rear view',    'shot from directly behind the athlete, showing back muscles and posterior chain',  3)
 ON CONFLICT DO NOTHING;
 
 INSERT INTO public.prompt_templates (name, type, content, variables, is_active, is_default, version) VALUES
