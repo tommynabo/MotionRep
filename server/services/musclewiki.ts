@@ -21,13 +21,12 @@ interface MuscleWikiVideo {
   gender?: string;
 }
 
-interface MuscleWikiSearchResponse {
-  results?: {
-    id: number;
-    name: string;
-    videos?: MuscleWikiVideo[];
-  }[];
-}
+// The /search endpoint returns a bare JSON array (not a {results:[]} wrapper)
+type MuscleWikiSearchResponse = {
+  id: number;
+  name: string;
+  videos?: MuscleWikiVideo[];
+}[];
 
 /**
  * Try a single search term against /search. Returns first result with videos, or null.
@@ -52,7 +51,8 @@ async function trySearch(
   }
 
   const data = (await res.json()) as MuscleWikiSearchResponse;
-  const match = data.results?.find((r) => (r.videos?.length ?? 0) > 0);
+  // API returns a bare array — find first result that has videos
+  const match = data.find((r) => (r.videos?.length ?? 0) > 0);
   if (match && match.videos?.length) {
     return { id: match.id, name: match.name, videos: match.videos };
   }
