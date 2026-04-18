@@ -103,6 +103,31 @@ async function runPipeline(params: {
   const { generationId, exercise, angle, userObservations, masterPrompt, shortsLogoUrl, shortsLogoDescription, referenceImageUrl } = params;
 
   try {
+    // STEP 0: Fetch the MuscleWiki reference video — abort immediately if not found.
+    // This runs BEFORE any expensive API calls (Claude, Flux) so no credits are wasted.
+    console.log(`[Pipeline ${generationId}] Step 0: Fetching MuscleWiki reference video...`);
+    const exerciseSearchName = exercise.name_en ?? exercise.name;
+    let referenceVideoUrl: string;
+    try {
+      referenceVideoUrl = await fetchReferenceVideoUrl(exerciseSearchName, angle.name);
+      console.log(`[Pipeline ${generationId}] Reference video ready: ${referenceVideoUrl}`);
+    } catch (refErr) {
+      const refMessage = refErr instanceof Error ? refErr.message : 'Unknown error fetching reference video';
+      console.error(`[Pipeline ${generationId}] Reference video not found — aborting:`, refMessage);
+      await supabase
+        .from('generations')
+        .update({
+          status: 'failed',
+          error_message:
+            `⚠️ Reference video not found for "${exercise.name}". ` +
+            `A developer must add this exercise's reference video before it can be animated. ` +
+            `Details: ${refMessage}`,
+          error_step: 'musclewiki',
+        })
+        .eq('id', generationId);
+      return;
+    }
+
     // STEP A: Build dual JSON prompts with Claude
     console.log(`[Pipeline ${generationId}] Step A: Building dual prompts with Claude...`);
     await supabase.from('generations').update({ status: 'prompting' }).eq('id', generationId);
@@ -147,33 +172,6 @@ async function runPipeline(params: {
       .from('generations')
       .update({ image_url: refinedImageUrl })
       .eq('id', generationId);
-
-    // STEP C-pre: Fetch the MuscleWiki reference video for motion transfer.
-    // If not found, abort immediately — generating without a reference video produces low-quality
-    // results and wastes API credits. A developer must add the video before retrying.
-    console.log(`[Pipeline ${generationId}] Step C-pre: Fetching MuscleWiki reference video...`);
-    // Use the English exercise name for the MuscleWiki search (better match rate).
-    const exerciseSearchName = exercise.name_en ?? exercise.name;
-    let referenceVideoUrl: string;
-    try {
-      referenceVideoUrl = await fetchReferenceVideoUrl(exerciseSearchName, angle.name);
-      console.log(`[Pipeline ${generationId}] Reference video ready: ${referenceVideoUrl}`);
-    } catch (refErr) {
-      const refMessage = refErr instanceof Error ? refErr.message : 'Unknown error fetching reference video';
-      console.error(`[Pipeline ${generationId}] Reference video not found — aborting:`, refMessage);
-      await supabase
-        .from('generations')
-        .update({
-          status: 'failed',
-          error_message:
-            `⚠️ Reference video not found for "${exercise.name}". ` +
-            `A developer must add this exercise's reference video before it can be animated. ` +
-            `Details: ${refMessage}`,
-          error_step: 'kling',
-        })
-        .eq('id', generationId);
-      return;
-    }
 
     // STEP C: Start Kling 3.0 motion-control task (non-blocking).
     // The model clones the biomechanics from the reference video onto our Flux-generated avatar.

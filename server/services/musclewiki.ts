@@ -1,5 +1,3 @@
-import { supabase } from '../lib/supabase.js';
-
 const MUSCLEWIKI_API_BASE = 'https://api.musclewiki.com';
 
 function muscleWikiHeaders(): Record<string, string> {
@@ -23,7 +21,7 @@ interface MuscleWikiVideo {
   gender?: string;
 }
 
-interface MuscleWikiSearchResult {
+interface MuscleWikiSearchResponse {
   results?: {
     id: number;
     name: string;
@@ -32,95 +30,116 @@ interface MuscleWikiSearchResult {
 }
 
 /**
- * Fetches a publicly accessible reference video URL for the given exercise from MuscleWiki.
+ * Try a single search term against /search. Returns first result with videos, or null.
+ */
+async function trySearch(
+  term: string,
+): Promise<{ id: number; name: string; videos: MuscleWikiVideo[] } | null> {
+  const url = new URL(`${MUSCLEWIKI_API_BASE}/search`);
+  url.searchParams.set('q', term);
+  url.searchParams.set('limit', '5');
+
+  let res: Response;
+  try {
+    res = await fetch(url.toString(), { headers: muscleWikiHeaders() });
+  } catch (err) {
+    throw new Error(`MuscleWiki network error for "${term}": ${(err as Error).message}`);
+  }
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`MuscleWiki search HTTP ${res.status} for "${term}": ${body}`);
+  }
+
+  const data = (await res.json()) as MuscleWikiSearchResponse;
+  const match = data.results?.find((r) => (r.videos?.length ?? 0) > 0);
+  if (match && match.videos?.length) {
+    return { id: match.id, name: match.name, videos: match.videos };
+  }
+  return null;
+}
+
+/**
+ * Constructs the proxy URL for a MuscleWiki video filename.
+ * Our /api/video-proxy/:filename endpoint streams it on-demand with the API key,
+ * so KIE can access it as a plain public URL — no storage bucket required.
+ */
+function buildProxyUrl(filename: string): string {
+  const appUrl =
+    (process.env.APP_URL ?? '').replace(/\/$/, '') ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3001');
+  return `${appUrl}/api/video-proxy/${encodeURIComponent(filename)}`;
+}
+
+/**
+ * Finds a reference exercise video on MuscleWiki and returns a publicly accessible proxy URL.
  *
- * Flow:
- *   1. Search MuscleWiki for the exercise by name → get the best-matching exercise ID.
- *   2. Fetch exercise detail → extract the best video (male gender, matching camera angle).
- *   3. Download the video binary (MuscleWiki stream endpoints require the API key header).
- *   4. Upload to Supabase Storage `reference-videos` bucket (public read, upsert to avoid re-downloading).
- *   5. Return the public Supabase URL — accessible by the KIE API without auth headers.
+ * Search strategy — tries progressively simpler queries until a match is found:
+ *   1. Full name          (e.g. "Flat Barbell Bench Press")
+ *   2. Drop first word    (e.g. "Barbell Bench Press")
+ *   3. Drop first 2 words (e.g. "Bench Press")
  *
- * Throws a descriptive error if the exercise is not found or has no videos, so the pipeline
- * can abort cleanly with a developer-facing message rather than wasting API credits.
+ * The returned URL points to our /api/video-proxy/:filename endpoint which streams the
+ * MuscleWiki video on-demand with the API key — no Supabase Storage bucket needed.
  *
- * Requires env vars:
- *   - MUSCLEWIKI_API_KEY
- * Requires Supabase Storage:
- *   - Bucket `reference-videos` with public read access enabled.
- *
- * @param exerciseName  Exercise name to search — use the English name (name_en) when available.
- * @param cameraAngle   Our camera angle label (e.g. "Lateral 90°") to select the matching video.
+ * @param exerciseName  English exercise name (use name_en from DB when available).
+ * @param cameraAngle   Camera angle label to pick the matching video angle.
  */
 export async function fetchReferenceVideoUrl(
   exerciseName: string,
   cameraAngle?: string,
 ): Promise<string> {
-  const apiKey = process.env.MUSCLEWIKI_API_KEY;
-  if (!apiKey) {
+  if (!process.env.MUSCLEWIKI_API_KEY) {
     throw new Error('MUSCLEWIKI_API_KEY is not set in environment variables');
   }
 
-  // ── Step 1: Search for the exercise (returns full data including videos) ──
-  const searchUrl = new URL(`${MUSCLEWIKI_API_BASE}/search`);
-  searchUrl.searchParams.set('q', exerciseName);
-  searchUrl.searchParams.set('limit', '3');
+  // ── Step 1: Search with progressively simplified terms ───────────────────
+  const words = exerciseName.trim().split(/\s+/).filter(Boolean);
 
-  const searchRes = await fetch(searchUrl.toString(), {
-    headers: muscleWikiHeaders(),
-  });
+  // Full name first, then drop one word from the front each time.
+  // Stop at 2-word minimum to avoid overly generic single-word searches.
+  const searchTerms: string[] = [];
+  for (let i = 0; i <= Math.max(0, words.length - 2); i++) {
+    searchTerms.push(words.slice(i).join(' '));
+  }
+  const uniqueTerms = [...new Set(searchTerms)];
 
-  if (!searchRes.ok) {
-    const body = await searchRes.text();
-    throw new Error(
-      `MuscleWiki search failed (HTTP ${searchRes.status}) for "${exerciseName}": ${body}`,
-    );
+  let match: { id: number; name: string; videos: MuscleWikiVideo[] } | null = null;
+  let matchedTerm = '';
+
+  for (const term of uniqueTerms) {
+    console.log(`[MuscleWiki] Searching: "${term}"`);
+    match = await trySearch(term);
+    if (match) {
+      matchedTerm = term;
+      break;
+    }
   }
 
-  const searchData = (await searchRes.json()) as MuscleWikiSearchResult;
-
-  if (!searchData.results?.length) {
+  if (!match) {
     throw new Error(
-      `No MuscleWiki exercise found matching "${exerciseName}". ` +
+      `No MuscleWiki exercise found matching "${exerciseName}" ` +
+        `(tried: ${uniqueTerms.map((t) => `"${t}"`).join(', ')}). ` +
         `A developer must add a reference video for this exercise manually.`,
     );
   }
 
-  const best = searchData.results[0];
   console.log(
-    `[MuscleWiki] Matched "${best.name}" (id: ${best.id}) for query "${exerciseName}"`,
+    `[MuscleWiki] Matched "${match.name}" (id: ${match.id}) via search term "${matchedTerm}"`,
   );
 
-  // The search endpoint returns the full exercise data including videos —
-  // no second /exercises/{id} call needed.
-  if (!best.videos?.length) {
-    throw new Error(
-      `Exercise "${exerciseName}" (MuscleWiki id: ${best.id}) has no videos. ` +
-        `A developer must add a reference video for this exercise manually.`,
-    );
-  }
-
-  // ── Step 2: Select the best video (male gender, matching camera angle) ────
+  // ── Step 2: Select the best video (male gender + matching angle) ──────────
   const anglePreference = preferredAngle(cameraAngle);
 
-  // Prefer male-gender videos; fall back to any if none are labelled male.
-  const maleVideos = best.videos.filter(
+  const maleVideos = match.videos.filter(
     (v) => !v.gender || v.gender.toLowerCase() === 'male',
   );
-  const candidates = maleVideos.length > 0 ? maleVideos : best.videos;
+  const candidates = maleVideos.length > 0 ? maleVideos : match.videos;
 
-  /**
-   * Check both the `angle` field and the URL/filename for the angle keyword.
-   * MuscleWiki filenames follow the pattern: {gender}-{Category}-{slug}-{angle}.mp4
-   */
   const matchesAngle = (v: MuscleWikiVideo, keyword: string): boolean => {
     if (v.angle?.toLowerCase().includes(keyword)) return true;
-    try {
-      const filename = new URL(v.url).pathname.split('/').pop() ?? '';
-      return filename.toLowerCase().includes(keyword);
-    } catch {
-      return v.url.toLowerCase().includes(keyword);
-    }
+    const urlFilename = v.url.split('/').pop() ?? '';
+    return urlFilename.toLowerCase().includes(keyword);
   };
 
   const selected: MuscleWikiVideo | undefined =
@@ -130,52 +149,22 @@ export async function fetchReferenceVideoUrl(
 
   if (!selected?.url) {
     throw new Error(
-      `No valid video URL found for exercise "${exerciseName}" in MuscleWiki response. ` +
+      `MuscleWiki exercise "${match.name}" has no usable video URL. ` +
         `A developer must add a reference video for this exercise manually.`,
     );
   }
 
   console.log(
-    `[MuscleWiki] Selected video (angle: ${selected.angle ?? 'unknown'}): ${selected.url}`,
+    `[MuscleWiki] Selected video angle "${selected.angle ?? 'unknown'}": ${selected.url}`,
   );
 
-  // ── Step 3: Download the video (MuscleWiki streams require the API key) ───
-  const videoRes = await fetch(selected.url, {
-    headers: muscleWikiHeaders(),
-  });
-
-  if (!videoRes.ok) {
-    throw new Error(
-      `Failed to download MuscleWiki reference video (HTTP ${videoRes.status}): ${selected.url}`,
-    );
+  // ── Step 3: Return proxy URL — no download/upload required ───────────────
+  const filename = selected.url.split('/').pop();
+  if (!filename || !filename.endsWith('.mp4')) {
+    throw new Error(`Unexpected MuscleWiki video URL format: ${selected.url}`);
   }
 
-  const videoBuffer = await videoRes.arrayBuffer();
-
-  // ── Step 4: Upload to Supabase Storage (upsert — skips re-download on retries) ─
-  const storagePath = `musclewiki/${best.id}-${anglePreference}.mp4`;
-
-  const { error: uploadError } = await supabase.storage
-    .from('reference-videos')
-    .upload(storagePath, videoBuffer, {
-      contentType: 'video/mp4',
-      upsert: true,
-    });
-
-  if (uploadError) {
-    throw new Error(
-      `Failed to upload reference video to Supabase Storage: ${uploadError.message}`,
-    );
-  }
-
-  const { data: publicUrlData } = supabase.storage
-    .from('reference-videos')
-    .getPublicUrl(storagePath);
-
-  if (!publicUrlData?.publicUrl) {
-    throw new Error('Failed to get public URL from Supabase Storage for the reference video');
-  }
-
-  console.log(`[MuscleWiki] Reference video cached at: ${publicUrlData.publicUrl}`);
-  return publicUrlData.publicUrl;
+  const proxyUrl = buildProxyUrl(filename);
+  console.log(`[MuscleWiki] Proxy URL: ${proxyUrl}`);
+  return proxyUrl;
 }
