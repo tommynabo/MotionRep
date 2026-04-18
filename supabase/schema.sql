@@ -164,14 +164,14 @@ CREATE TABLE IF NOT EXISTS public.generations (
   image_url             TEXT,
   image_width           INT,
   image_height          INT,
-  flux_model            TEXT        DEFAULT 'fal-ai/flux-pro/v1.1',
+  flux_model            TEXT        DEFAULT 'flux-kontext-max',
   flux_seed             BIGINT,
 
   -- Kling output
   video_url             TEXT,
   video_duration_sec    NUMERIC(5,1),
   video_aspect_ratio    TEXT        DEFAULT '16:9',
-  kling_model           TEXT        DEFAULT 'fal-ai/kling-video/v1.6/pro/image-to-video',
+  kling_model           TEXT        DEFAULT 'seedance-1.5-pro',
 
   -- Pipeline state
   status                TEXT        NOT NULL DEFAULT 'pending'
@@ -218,7 +218,7 @@ CREATE TABLE IF NOT EXISTS public.api_usage_log (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   generation_id   UUID        REFERENCES public.generations(id) ON DELETE SET NULL,
   user_id         UUID        REFERENCES public.users(id) ON DELETE SET NULL,
-  provider        TEXT        NOT NULL CHECK (provider IN ('anthropic', 'fal_flux', 'fal_kling')),
+  provider        TEXT        NOT NULL CHECK (provider IN ('anthropic', 'kei_image', 'kei_video')),
   model           TEXT        NOT NULL,
   input_tokens    INT,
   output_tokens   INT,
@@ -304,8 +304,8 @@ INSERT INTO public.config (key, value, description) VALUES
   ('default_video_duration', '5',    'Duración en segundos del vídeo generado con Kling'),
   ('default_aspect_ratio',   '16:9', 'Relación de aspecto por defecto'),
   ('max_daily_generations',  '50',   'Límite de generaciones por usuario por día'),
-  ('flux_model',   'fal-ai/flux-pro/v1.1',                       'Modelo Flux activo'),
-  ('kling_model',  'fal-ai/kling-video/v1.6/pro/image-to-video', 'Modelo Kling activo'),
+  ('flux_model',   'flux-kontext-max',                       'Modelo Flux activo'),
+  ('kling_model',  'seedance-1.5-pro', 'Modelo Kling activo'),
   ('claude_model', 'claude-3-5-sonnet-20241022',                  'Modelo Claude activo'),
   ('reference_model_image_url', 'https://kmdqecykrvwloggbjjli.supabase.co/storage/v1/object/public/reference-images/bodybuilder-posing-gym-young-athlete-man-beautiful-body-69792530.webp', 'URL pública de la foto del modelo de referencia en Supabase Storage. Usada por Flux Kontext (flux1-kontext) para mantener consistencia facial en todas las generaciones.')
 ON CONFLICT (key) DO NOTHING;
