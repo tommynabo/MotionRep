@@ -7,10 +7,22 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 import { getDirectMp4Url } from '../services/videoExtractor.js';
 
 const execAsync = promisify(exec);
+
+// Get __dirname for ES modules - with fallback for environments where import.meta.url may not be available
+const __dirname = (() => {
+  try {
+    return path.dirname(fileURLToPath(import.meta.url));
+  } catch (err) {
+    // Fallback: use process.cwd() if import.meta.url is not available
+    console.warn('[VideoProcessor] Warning: import.meta.url not available, using process.cwd()');
+    return process.cwd();
+  }
+})();
 
 export interface ExerciseRange {
   startFrame: number;
