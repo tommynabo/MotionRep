@@ -28,28 +28,26 @@ interface ProcessResult {
 /**
  * Full pipeline:
  * 1. Download MP4 from YouTube URL
- * 2. Detect exercise range using Python/MediaPipe (if available)
- * 3. Cut video to that range using ffmpeg (if available)
+ * 2. Detect exercise range using Python/MediaPipe (if available locally)
+ * 3. Cut video to that range using ffmpeg (if available locally)
  * 4. Upload to Supabase Storage (if cut video), or use YouTube URL directly
  * 5. Return storage URL
  * 
- * Fallback: If Python/FFmpeg not available (e.g., Vercel serverless),
- * returns full YouTube URL. Video processing can run separately.
+ * Fallback: If in serverless environment (Vercel), returns full YouTube URL.
+ * Video processing (pose detection + cutting) should run on a dedicated backend.
  */
 export async function processAndCutExerciseVideo(
   youtubeUrl: string,
   exerciseId: string,
   angleId?: string
 ): Promise<ProcessResult> {
-  // Check if we're in a serverless environment without Python/FFmpeg
-  const isPythonAvailable = fs.existsSync(
-    path.join(__dirname, '../scripts/detect_exercise.py')
-  );
-  const isFFmpegAvailable = await isCommandAvailable('ffmpeg');
+  // Check if we're in a serverless environment
+  // VERCEL environment variable is set when running on Vercel
+  const isServerless = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTION_NAME;
   
-  if (!isPythonAvailable || !isFFmpegAvailable) {
-    console.log('[VideoProcessor] Python or FFmpeg not available (serverless environment detected)');
-    console.log('[VideoProcessor] Returning full YouTube URL as fallback');
+  if (isServerless) {
+    console.log('[VideoProcessor] Serverless environment detected - using fallback mode');
+    console.log('[VideoProcessor] Returning full YouTube URL (video cutting disabled in serverless)');
     return {
       url: youtubeUrl,
       exerciseRange: {
@@ -62,17 +60,8 @@ export async function processAndCutExerciseVideo(
     };
   }
 
-  // Full processing pipeline with Python + FFmpeg
+  // Full processing pipeline with Python + FFmpeg (local environment)
   return await processAndCutExerciseVideoFull(youtubeUrl, exerciseId, angleId);
-}
-
-async function isCommandAvailable(command: string): Promise<boolean> {
-  try {
-    await execAsync(`which ${command}`, { timeout: 5000 });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 async function processAndCutExerciseVideoFull(
