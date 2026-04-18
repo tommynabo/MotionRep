@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { waitUntil } from '@vercel/functions';
 import { supabase } from '../lib/supabase.js';
 import { buildDualPrompts } from '../services/claude.js';
-import { generateImageFromReference, refineImageWithLogoAndBackground, startSeedance2MotionTask, checkKlingTask } from '../services/kie.js';
+import { generateImageFromReference, startSeedance2MotionTask, checkKlingTask } from '../services/kie.js';
 import { getDirectMp4Url } from '../services/videoExtractor.js';
 
 export async function startGeneration(req: Request, res: Response): Promise<void> {
@@ -146,25 +146,15 @@ async function runPipeline(params: {
       .update({ image_url: imageUrl, status: 'image_done' })
       .eq('id', generationId);
 
-    // STEP B2: Refinement pass — enforce pure white background + composite Symmetry S logo.
-    // Uses the first-pass image as input and returns a cleaned, logo-stamped image.
-    console.log(`[Pipeline ${generationId}] Step B2: Refining image (white bg + logo)...`);
-    const logoDescription = shortsLogoDescription || 'a white 3D geometric isometric letter S with bold angular faceted planes on the outer left thigh';
-    const refinedImageUrl = await refineImageWithLogoAndBackground(imageUrl, logoDescription);
-    await supabase
-      .from('generations')
-      .update({ image_url: refinedImageUrl })
-      .eq('id', generationId);
-
     // STEP C: Resolve direct MP4 URL from the approved CC-BY YouTube reference video.
     console.log(`[Pipeline ${generationId}] Step C: Resolving direct MP4 from reference video...`);
     const directMp4Url = await getDirectMp4Url(exercise.reference_video_url);
 
     // STEP D: Start Kling 3.0 motion-control task (non-blocking).
-    // Passes the refined Flux image (subject + white studio background) and the direct MP4
+    // Passes the Flux image (subject + white studio background + logo, all in one pass) and the direct MP4
     // (biomechanical reference). background_source: 'input_image' preserves the white backdrop.
     console.log(`[Pipeline ${generationId}] Step D: Launching Kling 3.0 motion-control task (non-blocking)...`);
-    const seedanceTaskId = await startSeedance2MotionTask(refinedImageUrl, directMp4Url, videoPrompt);
+    const seedanceTaskId = await startSeedance2MotionTask(imageUrl, directMp4Url, videoPrompt);
     await supabase
       .from('generations')
       .update({ status: 'animating', kie_video_task_id: seedanceTaskId })

@@ -6,6 +6,7 @@ import Generator from './components/Generator';
 import Database from './components/Database';
 import VideoDetail from './components/VideoDetail';
 import Configuration from './components/Configuration';
+import { CurationPage } from './components/CurationPage';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -20,6 +21,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/generador" replace />} />
           <Route path="/generador" element={<Generator />} />
+          <Route path="/curator" element={<CurationPage />} />
           <Route path="/base" element={<Database />} />
           <Route path="/base/:id" element={<VideoDetail />} />
           <Route path="/configuracion" element={<Configuration />} />
