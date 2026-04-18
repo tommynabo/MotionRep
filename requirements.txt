@@ -1,3 +1,4 @@
-mediapipe==0.10.11
-opencv-python==4.10.0.84
-numpy==1.24.3
+# This file is intentionally empty.
+# Python dependencies are only for local development (see requirements-dev.txt).
+# The backend runs on Node.js in Vercel. Video processing happens asynchronously.
+

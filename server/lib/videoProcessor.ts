@@ -28,12 +28,54 @@ interface ProcessResult {
 /**
  * Full pipeline:
  * 1. Download MP4 from YouTube URL
- * 2. Detect exercise range using Python/MediaPipe
- * 3. Cut video to that range using ffmpeg
- * 4. Upload to Supabase Storage
+ * 2. Detect exercise range using Python/MediaPipe (if available)
+ * 3. Cut video to that range using ffmpeg (if available)
+ * 4. Upload to Supabase Storage (if cut video), or use YouTube URL directly
  * 5. Return storage URL
+ * 
+ * Fallback: If Python/FFmpeg not available (e.g., Vercel serverless),
+ * returns full YouTube URL. Video processing can run separately.
  */
 export async function processAndCutExerciseVideo(
+  youtubeUrl: string,
+  exerciseId: string,
+  angleId?: string
+): Promise<ProcessResult> {
+  // Check if we're in a serverless environment without Python/FFmpeg
+  const isPythonAvailable = fs.existsSync(
+    path.join(__dirname, '../scripts/detect_exercise.py')
+  );
+  const isFFmpegAvailable = await isCommandAvailable('ffmpeg');
+  
+  if (!isPythonAvailable || !isFFmpegAvailable) {
+    console.log('[VideoProcessor] Python or FFmpeg not available (serverless environment detected)');
+    console.log('[VideoProcessor] Returning full YouTube URL as fallback');
+    return {
+      url: youtubeUrl,
+      exerciseRange: {
+        startFrame: 0,
+        endFrame: -1,
+        startTime: 0,
+        endTime: -1,
+        duration: -1,
+      },
+    };
+  }
+
+  // Full processing pipeline with Python + FFmpeg
+  return await processAndCutExerciseVideoFull(youtubeUrl, exerciseId, angleId);
+}
+
+async function isCommandAvailable(command: string): Promise<boolean> {
+  try {
+    await execAsync(`which ${command}`, { timeout: 5000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function processAndCutExerciseVideoFull(
   youtubeUrl: string,
   exerciseId: string,
   angleId?: string

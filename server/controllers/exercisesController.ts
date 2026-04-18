@@ -155,22 +155,30 @@ export async function approveCandidate(req: Request, res: Response): Promise<voi
     console.log(`[approveCandidate] Processing video for exercise: ${exercise.name}`);
     
     // Process video: detect -> cut -> upload
+    // Falls back to full YouTube URL if Python/FFmpeg not available (serverless)
     const { url: processedVideoUrl, exerciseRange } = await processAndCutExerciseVideo(
       youtubeUrl.trim(),
       exercise.id
     );
 
-    console.log(`[approveCandidate] Video processed. Updating exercise record...`);
+    const isProcessed = exerciseRange.duration > 0; // -1 means fallback mode
+    console.log(`[approveCandidate] Video ${isProcessed ? 'processed' : 'fallback (full URL used)'}. Updating exercise record...`);
 
-    // Update exercise with processed video URL and timing info
+    // Update exercise with processed/fallback video URL and timing info
+    // If in fallback mode, timing columns will be null
+    const updateData: any = {
+      reference_video_url: processedVideoUrl,
+    };
+
+    if (isProcessed) {
+      updateData.reference_video_start_time = exerciseRange.startTime;
+      updateData.reference_video_end_time = exerciseRange.endTime;
+      updateData.reference_video_duration = exerciseRange.duration;
+    }
+
     const { data, error: updateError } = await supabase
       .from('exercises')
-      .update({
-        reference_video_url: processedVideoUrl,
-        reference_video_start_time: exerciseRange.startTime,
-        reference_video_end_time: exerciseRange.endTime,
-        reference_video_duration: exerciseRange.duration,
-      })
+      .update(updateData)
       .eq('id', id)
       .select('id, name, reference_video_url, reference_video_duration')
       .single();
@@ -186,7 +194,11 @@ export async function approveCandidate(req: Request, res: Response): Promise<voi
       processingInfo: {
         originalUrl: youtubeUrl,
         processedUrl: processedVideoUrl,
-        detectedRange: exerciseRange,
+        detectedRange: isProcessed ? exerciseRange : null,
+        fallbackMode: !isProcessed,
+        message: isProcessed
+          ? 'Video processed and cut to exercise range'
+          : 'Serverless mode: using full YouTube URL. Video cutting not available here.',
       },
     });
   } catch (err) {
@@ -194,7 +206,7 @@ export async function approveCandidate(req: Request, res: Response): Promise<voi
     console.error('[approveCandidate] Error:', message);
     res.status(502).json({ 
       error: message,
-      details: 'Failed to process and cut video. Ensure ffmpeg and Python (with mediapipe) are installed.',
+      details: 'For best results, ensure ffmpeg and Python (with mediapipe) are installed in your environment.',
     });
   }
 }

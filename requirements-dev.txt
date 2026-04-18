@@ -1,0 +1,7 @@
+# Development dependencies for local video processing
+# Install with: pip install -r requirements-dev.txt
+# NOT used in Vercel (serverless environment)
+
+mediapipe==0.10.11
+opencv-python==4.10.0.84
+numpy==1.24.3
