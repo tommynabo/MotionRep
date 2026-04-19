@@ -1,0 +1,11 @@
+{
+  "LAMBDA_ENDPOINT": "https://w4qcbbn7ck.execute-api.eu-north-1.amazonaws.com/prod/process-video",
+  "LAMBDA_API_KEY": "qoeu1tpmXZ28S0L6pQluE5VxfDKE0fsfle42xwnf",
+  "AWS_REGION": "eu-north-1",
+  "LAMBDA_FUNCTION": "motionrep-video-processor",
+  "API_GATEWAY_ID": "w4qcbbn7ck",
+  "LAMBDA_ROLE_ARN": "arn:aws:iam::770014286285:role/motionrep-video-processor-role",
+  "LAMBDA_FUNCTION_ARN": "arn:aws:lambda:eu-north-1:770014286285:function:motionrep-video-processor",
+  "CREATED_DATE": "2026-04-19",
+  "STATUS": "READY FOR PRODUCTION"
+}

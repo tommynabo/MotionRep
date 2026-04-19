@@ -1,0 +1,15 @@
+FROM public.ecr.aws/lambda/python:3.11
+
+# Install system dependencies
+RUN yum install -y ffmpeg && yum clean all
+
+# Copy lambda code
+COPY lambda/index.py ${LAMBDA_TASK_ROOT}/
+COPY lambda/detect_exercise_lambda.py ${LAMBDA_TASK_ROOT}/
+
+# Install Python dependencies
+COPY lambda/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Set the CMD to handler
+CMD [ "index.lambda_handler" ]
