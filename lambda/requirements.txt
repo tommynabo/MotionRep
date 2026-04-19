@@ -1,0 +1,6 @@
+requests==2.31.0
+boto3==1.28.85
+mediapipe==0.10.0
+opencv-python-headless==4.8.1.78
+pytube==15.0.0
+numpy==1.24.3

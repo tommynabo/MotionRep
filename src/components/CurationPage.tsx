@@ -31,6 +31,7 @@ interface ApprovedVideoResponse {
     processedUrl: string;
     detectedRange: { duration: number; startTime: number; endTime: number } | null;
     fallbackMode: boolean;
+    processingQueued: boolean;
     message: string;
   };
 }
@@ -312,14 +313,24 @@ export function CurationPage() {
                     
                     {/* Processing Status */}
                     <div className="bg-dark-bg/50 rounded p-2 text-xs text-zinc-300 space-y-1">
-                      <p className="font-semibold text-neon-green/80">
-                        {approvedVideoResponse.processingInfo?.fallbackMode 
-                          ? '⚠️ Fallback Mode (URL no procesada)' 
-                          : '✅ Procesado y cortado'}
-                      </p>
+                      {/* Status Indicator */}
+                      {approvedVideoResponse.processingInfo?.processingQueued ? (
+                        <p className="font-semibold text-yellow-400 flex items-center gap-1">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          ⏳ Procesando en Lambda (1-2 min)
+                        </p>
+                      ) : approvedVideoResponse.processingInfo?.fallbackMode ? (
+                        <p className="font-semibold text-orange-400">
+                          ⚠️ Fallback Mode (URL no procesada)
+                        </p>
+                      ) : (
+                        <p className="font-semibold text-neon-green">
+                          ✅ Procesado y cortado
+                        </p>
+                      )}
                       
                       {/* Show timing info if available */}
-                      {approvedVideoResponse.reference_video_duration !== null && approvedVideoResponse.reference_video_duration !== undefined ? (
+                      {approvedVideoResponse.reference_video_duration !== null && approvedVideoResponse.reference_video_duration !== undefined && approvedVideoResponse.reference_video_duration > 0 ? (
                         <div className="space-y-0.5">
                           <p>📹 Duración: <span className="text-neon-green">{approvedVideoResponse.reference_video_duration.toFixed(2)}s</span></p>
                           {approvedVideoResponse.reference_video_start_time !== null && approvedVideoResponse.reference_video_start_time !== undefined && (
@@ -329,8 +340,10 @@ export function CurationPage() {
                             </>
                           )}
                         </div>
+                      ) : approvedVideoResponse.processingInfo?.processingQueued ? (
+                        <p className="text-zinc-400 text-xs">Esperando procesamiento de Lambda...</p>
                       ) : (
-                        <p className="text-zinc-400">⏳ Timing no disponible (usando URL completa)</p>
+                        <p className="text-zinc-400 text-xs">⏳ Timing no disponible (URL completa)</p>
                       )}
                       
                       {approvedVideoResponse.processingInfo?.message && (

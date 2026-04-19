@@ -45,8 +45,12 @@ interface ProcessResult {
  * 4. Upload to Supabase Storage (if cut video), or use YouTube URL directly
  * 5. Return storage URL
  * 
- * Fallback: If in serverless environment (Vercel), returns full YouTube URL.
- * Video processing (pose detection + cutting) should run on a dedicated backend.
+ * In serverless (Vercel):
+ * - If Lambda endpoint configured: queue job asynchronously
+ * - Else: return full YouTube URL with fallback mode marker
+ * 
+ * In local environment:
+ * - Run full processing pipeline with Python + FFmpeg
  */
 export async function processAndCutExerciseVideo(
   youtubeUrl: string,
@@ -54,10 +58,25 @@ export async function processAndCutExerciseVideo(
   angleId?: string
 ): Promise<ProcessResult> {
   // Check if we're in a serverless environment
-  // VERCEL environment variable is set when running on Vercel
   const isServerless = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTION_NAME;
   
   if (isServerless) {
+    // Try to call external Lambda worker if configured
+    if (process.env.LAMBDA_ENDPOINT && process.env.LAMBDA_API_KEY) {
+      console.log('[VideoProcessor] Serverless detected - queuing job to external Lambda worker');
+      try {
+        const jobResult = await callExternalLambdaWorker(youtubeUrl, exerciseId, angleId);
+        // Return immediately with job queued status
+        // DB will be updated via webhook callback from Lambda
+        return jobResult;
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        console.warn('[VideoProcessor] Lambda worker call failed, falling back to YouTube URL:', errMsg);
+        // Fall through to fallback
+      }
+    }
+    
+    // Fallback: no Lambda worker configured, return full YouTube URL
     console.log('[VideoProcessor] Serverless environment detected - using fallback mode');
     console.log('[VideoProcessor] Returning full YouTube URL (video cutting disabled in serverless)');
     return {
@@ -67,7 +86,7 @@ export async function processAndCutExerciseVideo(
         endFrame: -1,
         startTime: 0,
         endTime: -1,
-        duration: -1,
+        duration: -1, // -1 signals fallback mode
       },
     };
   }
@@ -203,6 +222,69 @@ async function downloadFile(url: string, outputPath: string): Promise<void> {
   const buffer = await response.arrayBuffer();
   fs.writeFileSync(outputPath, Buffer.from(buffer));
   console.log('[Download] Saved:', outputPath);
+}
+
+async function callExternalLambdaWorker(
+  youtubeUrl: string,
+  exerciseId: string,
+  angleId?: string
+): Promise<ProcessResult> {
+  const lambdaEndpoint = process.env.LAMBDA_ENDPOINT;
+  const lambdaApiKey = process.env.LAMBDA_API_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const callbackUrl = `${process.env.VERCEL_URL}/api/webhook/video-processed`;
+  
+  if (!lambdaEndpoint || !lambdaApiKey) {
+    throw new Error('Lambda endpoint or API key not configured');
+  }
+  
+  console.log('[Lambda] Sending video processing job to:', lambdaEndpoint);
+  
+  const payload = {
+    youtubeUrl,
+    exerciseId,
+    angleId,
+    supabaseKey: supabaseServiceKey,
+    supabaseUrl,
+    callbackUrl,
+  };
+  
+  try {
+    const response = await fetch(lambdaEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': lambdaApiKey,
+      },
+      body: JSON.stringify(payload),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Lambda returned ${response.status}: ${errorText}`);
+    }
+    
+    const result = await response.json();
+    console.log('[Lambda] Job queued successfully:', result);
+    
+    // Return immediately with queued status
+    // Lambda will update DB via webhook callback
+    return {
+      url: youtubeUrl, // Temporary: will be updated by webhook
+      exerciseRange: {
+        startFrame: 0,
+        endFrame: -1,
+        startTime: 0,
+        endTime: -1,
+        duration: 0, // 0 = processing queued (not -1 which means fallback)
+      },
+    };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error('[Lambda] Job queueing failed:', errMsg);
+    throw err;
+  }
 }
 
 async function uploadToSupabase(
