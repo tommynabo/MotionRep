@@ -19,6 +19,22 @@ interface YouTubeCandidate {
   youtubeUrl: string;
 }
 
+interface ApprovedVideoResponse {
+  id: string;
+  name: string;
+  reference_video_url: string;
+  reference_video_duration: number | null;
+  reference_video_start_time?: number | null;
+  reference_video_end_time?: number | null;
+  processingInfo?: {
+    originalUrl: string;
+    processedUrl: string;
+    detectedRange: { duration: number; startTime: number; endTime: number } | null;
+    fallbackMode: boolean;
+    message: string;
+  };
+}
+
 export function CurationPage() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [angles, setAngles] = useState<CameraAngle[]>([]);
@@ -28,6 +44,7 @@ export function CurationPage() {
   
   const [candidates, setCandidates] = useState<YouTubeCandidate[]>([]);
   const [approvedVideo, setApprovedVideo] = useState<YouTubeCandidate | null>(null);
+  const [approvedVideoResponse, setApprovedVideoResponse] = useState<ApprovedVideoResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -67,6 +84,7 @@ export function CurationPage() {
     setError('');
     setCandidates([]);
     setApprovedVideo(null);
+    setApprovedVideoResponse(null);
     
     try {
       const res = await fetch(`/api/exercises/${selectedExerciseId}/search-candidates`, {
@@ -109,9 +127,20 @@ export function CurationPage() {
         throw new Error(errData.error || 'Approval failed');
       }
       
+      const dbResponse = await res.json() as ApprovedVideoResponse;
       const selectedExercise = exercises.find(e => e.id === selectedExerciseId);
+      
+      // Keep the candidate for display (title, thumbnail)
       setApprovedVideo(candidate);
-      setSuccess(`✅ Video aprobado para ${selectedExercise?.name}`);
+      // Store the DB response (includes timing data and processing info)
+      setApprovedVideoResponse(dbResponse);
+      
+      // Show status message
+      const statusMsg = dbResponse.processingInfo?.fallbackMode
+        ? `✅ Video aprobado para ${selectedExercise?.name} (URL fallback)`
+        : `✅ Video aprobado para ${selectedExercise?.name} (procesado y cortado)`;
+      
+      setSuccess(statusMsg);
       setTimeout(() => setSuccess(''), 4000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Approval failed');
@@ -264,23 +293,52 @@ export function CurationPage() {
               </div>
 
               {/* Approved Video Display */}
-              {approvedVideo && (
+              {approvedVideo && approvedVideoResponse && (
                 <div className="mt-6 pt-6 border-t border-dark-border space-y-3">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-neon-green" />
                     <h4 className="text-sm font-bold text-neon-green">Video Aprobado</h4>
                   </div>
-                  <div className="bg-dark-bg rounded-lg p-3 border border-neon-green/20">
-                    <p className="text-xs text-zinc-400 mb-2 line-clamp-2">{approvedVideo.title}</p>
+                  <div className="bg-dark-bg rounded-lg p-3 border border-neon-green/20 space-y-2">
+                    <p className="text-xs text-zinc-400">{approvedVideo.title}</p>
                     <a
                       href={approvedVideo.youtubeUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-neon-green hover:underline break-all"
+                      className="text-xs text-neon-green hover:underline break-all block"
                     >
                       {approvedVideo.youtubeUrl}
                     </a>
-                    <p className="text-xs text-neon-green/70 mt-2">✅ Listo para el Generador</p>
+                    
+                    {/* Processing Status */}
+                    <div className="bg-dark-bg/50 rounded p-2 text-xs text-zinc-300 space-y-1">
+                      <p className="font-semibold text-neon-green/80">
+                        {approvedVideoResponse.processingInfo?.fallbackMode 
+                          ? '⚠️ Fallback Mode (URL no procesada)' 
+                          : '✅ Procesado y cortado'}
+                      </p>
+                      
+                      {/* Show timing info if available */}
+                      {approvedVideoResponse.reference_video_duration !== null && approvedVideoResponse.reference_video_duration !== undefined ? (
+                        <div className="space-y-0.5">
+                          <p>📹 Duración: <span className="text-neon-green">{approvedVideoResponse.reference_video_duration.toFixed(2)}s</span></p>
+                          {approvedVideoResponse.reference_video_start_time !== null && approvedVideoResponse.reference_video_start_time !== undefined && (
+                            <>
+                              <p>▶️ Inicio: <span className="text-neon-green">{approvedVideoResponse.reference_video_start_time.toFixed(2)}s</span></p>
+                              <p>⏹️ Fin: <span className="text-neon-green">{(approvedVideoResponse.reference_video_end_time ?? 0).toFixed(2)}s</span></p>
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-zinc-400">⏳ Timing no disponible (usando URL completa)</p>
+                      )}
+                      
+                      {approvedVideoResponse.processingInfo?.message && (
+                        <p className="text-zinc-400 italic text-xs">{approvedVideoResponse.processingInfo.message}</p>
+                      )}
+                    </div>
+                    
+                    <p className="text-xs text-neon-green/70">✅ Listo para el Generador</p>
                   </div>
                 </div>
               )}
