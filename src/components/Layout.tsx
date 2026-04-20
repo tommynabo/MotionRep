@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Dumbbell, FolderOpen, Settings, LogOut } from 'lucide-react';
+import { Dumbbell, FolderOpen, Settings, LogOut, FlaskConical } from 'lucide-react';
 import Logo from './Logo';
 
 interface LayoutProps {
@@ -16,6 +16,7 @@ export default function Layout({ children, onLogout }: LayoutProps) {
     { path: '/generador', label: 'Generador', icon: Dumbbell },
     { path: '/base', label: 'Base de Datos', icon: FolderOpen },
     { path: '/configuracion', label: 'Configuración', icon: Settings },
+    { path: '/test-prompts', label: 'Test Prompts', icon: FlaskConical },
   ];
 
   return (

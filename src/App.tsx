@@ -6,6 +6,7 @@ import Generator from './components/Generator';
 import Database from './components/Database';
 import VideoDetail from './components/VideoDetail';
 import Configuration from './components/Configuration';
+import PromptTester from './components/PromptTester';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/base" element={<Database />} />
           <Route path="/base/:id" element={<VideoDetail />} />
           <Route path="/configuracion" element={<Configuration />} />
+          <Route path="/test-prompts" element={<PromptTester />} />
           <Route path="*" element={<Navigate to="/generador" replace />} />
         </Routes>
       </Layout>
