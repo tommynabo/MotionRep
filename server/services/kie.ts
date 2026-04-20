@@ -174,7 +174,7 @@ STRICT RULE: Do NOT change body position, equipment, background, lighting, short
     method: 'POST',
     headers: kieHeaders(),
     body: JSON.stringify({
-      model: 'flux-kontext-max',
+      model: 'flux1-kontext',
       prompt: safePrompt,
       inputImage: baseImageUrl,
       outputFormat: 'jpeg',
@@ -411,7 +411,7 @@ export async function startSeedanceTask(
 ): Promise<string> {
   const safePrompt = promptText.length > 2500 ? promptText.slice(0, 2500) : promptText;
   return await createTask({
-    model: 'bytedance/seedance-2.0',
+    model: 'bytedance/seedance-2',
     input: {
       prompt: safePrompt,
       input_urls: [imageUrl],
