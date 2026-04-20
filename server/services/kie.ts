@@ -170,20 +170,25 @@ STRICT RULE: Do NOT change body position, equipment, background, lighting, short
 
   const safePrompt = prompt.length > 2950 ? prompt.slice(0, 2950) : prompt;
 
-  // flux1-kontext uses /jobs/createTask (not /flux/kontext/generate)
-  const taskId = await createTask({
-    model: 'flux1-kontext',
-    input: {
+  // KIE exposes flux1-kontext (BFL) as "flux-kontext-pro" on /flux/kontext/generate
+  const res = await fetch(`${KIE_API_BASE}/flux/kontext/generate`, {
+    method: 'POST',
+    headers: kieHeaders(),
+    body: JSON.stringify({
+      model: 'flux-kontext-pro',
       prompt: safePrompt,
-      image_url: baseImageUrl,
-      aspect_ratio: '9:16',
-      output_format: 'jpeg',
-    },
+      inputImage: baseImageUrl,
+      aspectRatio: '9:16',
+      outputFormat: 'jpeg',
+      safetyTolerance: 2,
+    }),
   });
+  const json = (await res.json()) as { code: number; msg: string; data: { taskId: string } };
+  if (json.code !== 200) {
+    throw new Error(`KIE face identity error ${json.code}: ${json.msg}`);
+  }
 
-  const urls = await pollTask(taskId);
-  if (!urls[0]) throw new Error('flux1-kontext did not return an image URL');
-  return urls[0];
+  return await pollFluxTask(json.data.taskId);
 }
 
 /**
