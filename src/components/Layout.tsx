@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Dumbbell, FolderOpen, Settings, LogOut, Film } from 'lucide-react';
+import { Dumbbell, FolderOpen, Settings, LogOut } from 'lucide-react';
 import Logo from './Logo';
 
 interface LayoutProps {
@@ -14,7 +14,6 @@ export default function Layout({ children, onLogout }: LayoutProps) {
 
   const navItems = [
     { path: '/generador', label: 'Generador', icon: Dumbbell },
-    { path: '/curator', label: 'Video Curation', icon: Film },
     { path: '/base', label: 'Base de Datos', icon: FolderOpen },
     { path: '/configuracion', label: 'Configuración', icon: Settings },
   ];
