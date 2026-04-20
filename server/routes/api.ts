@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { startGeneration, getGenerationStatus } from '../controllers/generateController.js';
+import { testPrompts } from '../controllers/testPromptsController.js';
 import { listExercises, createExercise, deleteExercise } from '../controllers/exercisesController.js';
 import { listAngles, createAngle, deleteAngle } from '../controllers/anglesController.js';
 import { listGenerations, deleteGeneration } from '../controllers/generationsController.js';
@@ -10,6 +11,9 @@ const router = Router();
 // Generation pipeline
 router.post('/generate', startGeneration);
 router.get('/generate/:id', getGenerationStatus);
+
+// Prompt testing — runs Claude only, zero image/video credits spent
+router.post('/test-prompts', testPrompts);
 
 // Exercises
 router.get('/exercises', listExercises);
