@@ -170,12 +170,11 @@ STRICT RULE: Do NOT change body position, equipment, background, lighting, short
 
   const safePrompt = prompt.length > 2950 ? prompt.slice(0, 2950) : prompt;
 
-  // KIE exposes flux1-kontext (BFL) as "flux-kontext-pro" on /flux/kontext/generate
   const res = await fetch(`${KIE_API_BASE}/flux/kontext/generate`, {
     method: 'POST',
     headers: kieHeaders(),
     body: JSON.stringify({
-      model: 'flux-kontext-pro',
+      model: 'flux-kontext-max',
       prompt: safePrompt,
       inputImage: baseImageUrl,
       aspectRatio: '9:16',
