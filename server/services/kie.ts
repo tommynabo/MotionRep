@@ -244,7 +244,7 @@ Output: A refined image with only background and logo edited. Input pose, angle,
     method: 'POST',
     headers: kieHeaders(),
     body: JSON.stringify({
-      model: 'flux-kontext-max',
+      model: 'flux1-kontext',
       prompt: safePrompt,
       inputImage: imageUrl,
       aspectRatio: '9:16',
@@ -291,7 +291,7 @@ export async function generateImageFromReference(
     method: 'POST',
     headers: kieHeaders(),
     body: JSON.stringify({
-      model: 'flux-kontext-max',
+      model: 'flux1-kontext',
       prompt: safePrompt,
       inputImage: referenceImageUrl,
       aspectRatio: '9:16',
@@ -302,6 +302,7 @@ export async function generateImageFromReference(
   const json = (await res.json()) as { code: number; msg: string; data: { taskId: string } };
   if (json.code !== 200) {
     throw new Error(`KIE Flux Kontext error ${json.code}: ${json.msg}`);
+
   }
 
   return await pollFluxTask(json.data.taskId);
