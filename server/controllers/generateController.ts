@@ -16,17 +16,18 @@ export async function startGeneration(req: Request, res: Response): Promise<void
     return;
   }
 
-  // Reference model image — Cloudinary URL of the athlete reference photo
-  const REFERENCE_MODEL_IMAGE_URL =
+  // Fallback reference model image if not stored in Supabase config
+  const FALLBACK_REFERENCE_MODEL_IMAGE_URL =
     'https://res.cloudinary.com/dq9mlk8x3/image/upload/v1776327685/20206424-handsome-young-muscular-sports-man-on-gray-background_ahrecm.jpg';
 
   // Fetch exercise, angle, master prompt and shorts logo
-  const [exerciseResult, angleResult, masterPromptResult, shortsLogoResult, shortsLogoDescResult] = await Promise.all([
+  const [exerciseResult, angleResult, masterPromptResult, shortsLogoResult, shortsLogoDescResult, referenceModelResult] = await Promise.all([
     supabase.from('exercises').select('name, base_technique, equipment, muscle_groups, movement_pattern, technique_cues').eq('id', exercise_id).single(),
     supabase.from('camera_angles').select('name, prompt_modifier').eq('id', angle_id).single(),
     supabase.from('config').select('value').eq('key', 'master_prompt').single(),
     supabase.from('config').select('value').eq('key', 'shorts_logo_url').single(),
     supabase.from('config').select('value').eq('key', 'shorts_logo_description').single(),
+    supabase.from('config').select('value').eq('key', 'reference_model_image_url').single(),
   ]);
 
   if (exerciseResult.error || !exerciseResult.data) {
@@ -47,7 +48,7 @@ export async function startGeneration(req: Request, res: Response): Promise<void
   const shortsLogoDescription =
     shortsLogoDescResult.data?.value ||
     "a white three-dimensional isometric letter 'S' with bold geometric angular facets, constructed from stepped cubic planes in an isometric perspective — the official Symmetry brand logo printed on the fabric";
-  const referenceImageUrl = REFERENCE_MODEL_IMAGE_URL;
+  const referenceImageUrl = referenceModelResult.data?.value || FALLBACK_REFERENCE_MODEL_IMAGE_URL;
 
   // Create the generation record with status 'pending'
   const { data: generation, error: insertError } = await supabase

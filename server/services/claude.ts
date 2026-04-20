@@ -91,7 +91,8 @@ RULE 5 — VIDEO ANIMATION STRICTNESS:
 The video_prompt MUST start with this exact header:
 "ULTRA STATIC LOCKED CAMERA. ABSOLUTELY NO ZOOM, NO PANNING, NO SCENE CHANGES. The exact initial framing must be maintained throughout the entire video."
 The movement must be described as: "steady, biomechanically perfect, absolutely no swinging or momentum. Exactly 4 continuous repetitions."
-TEMPO BUDGET — CRITICAL: The video is 12 seconds long. Use this exact tempo: 1.5s eccentric lowering, 0.25s pause at bottom, 1s concentric drive, 0.25s lockout hold = 3s per rep × 4 reps = 12s total. Do NOT use a tempo that would exceed 12 seconds. Every repetition uses exactly 3 seconds.
+TEMPO BUDGET — CRITICAL: The video is 10 seconds long. Use this exact tempo: 1.25s eccentric lowering, 0.25s pause at bottom, 0.75s concentric drive, 0.25s lockout hold = 2.5s per rep × 4 reps = 10s total. Do NOT use a tempo that would exceed 10 seconds. Every repetition uses exactly 2.5 seconds.
+SEAMLESS CONTINUITY — ABSOLUTE: The video is ONE single uninterrupted clip from start to finish. ZERO cuts, ZERO resets, ZERO discontinuities between repetitions. The athlete begins in lockout position and each repetition flows seamlessly and continuously into the next — there are NO black frames, NO freeze frames, NO scene restarts, NO partial-rep interruptions, NO sudden position jumps between reps. Rep 1 ends at lockout and Rep 2 begins the eccentric descent immediately — no pause or gap between reps beyond the 0.25s lockout hold. ABSOLUTE PROHIBITION: any visual break, cut, reset, or discontinuity between repetitions voids the entire video generation.
 
 RULE 6 — IMPLEMENT SPATIAL POSITIONING (critical for compound lifts):
 ABSOLUTE REQUIREMENT: The implement (barbell, dumbbell, cable, machine) MUST be clearly visible, physically connected to the athlete's hands/body, and spatially anchored in the image. Never floating, never implied, always explicitly shown.
@@ -187,15 +188,16 @@ Build the "video_prompt" string in this order:
    "STRICT ANGLE ENFORCEMENT: A shot that deviates from the specified camera angle is ABSOLUTELY FORBIDDEN and voids the entire prompt. The specified angle is non-negotiable and must be maintained for every single frame."
 
 4. Subject and identity lock:
-   "The athlete is animated directly from the input image. Preserve exact facial identity, skin tone, hair, and physique from the input image throughout every frame. NO face morphing, NO identity drift, NO physique change."
+   "The athlete is animated directly from the input image. Preserve exact facial identity, skin tone, hair, and physique from the input image throughout every frame. NO face morphing, NO identity drift, NO physique change. The athlete is SHIRTLESS — bare torso, no shirt, no sleeveless top, no garment of any kind on the upper body. This is non-negotiable: a shirtless athlete allows full visibility of muscle activation patterns and joint mechanics throughout every frame."
 
 5. Background lock (RULE 1 — mandatory every frame):
    "BACKGROUND ABSOLUTE LOCK: Every single frame must show the same white studio environment as the input image: bright white walls, white polished concrete floor, large pendant lights on a white ceiling. The background MUST NOT change, darken, or gain any new elements at any point during the video. No gym equipment in background, no coloured walls, no mirrors, no other people visible."
 
 6. Exercise motion description — FRAME BY FRAME (RULE 10 + RULE 5 tempo):
    This is the core of the video_prompt. Describe the exercise motion in precise biomechanical terms, joint angle by joint angle, using the exact tempo from RULE 5:
-   - TEMPO: 1.5s eccentric lowering | 0.25s pause at bottom | 1.0s concentric drive | 0.25s lockout hold = 3.0s per rep × 4 reps = 12s total.
-   - Describe each phase with explicit joint angles and body segment positions (e.g. "0s–1.5s: hips hinge posteriorly, knees flex from 0° to 90°, torso descends while maintaining neutral spine at approximately 45° to vertical, barbell tracks vertically along shins...").
+   - TEMPO: 1.25s eccentric lowering | 0.25s pause at bottom | 0.75s concentric drive | 0.25s lockout hold = 2.5s per rep × 4 reps = 10s total.
+   - Describe each phase with explicit joint angles and body segment positions (e.g. "0s–1.25s: hips hinge posteriorly, knees flex from 0° to 90°, torso descends while maintaining neutral spine at approximately 45° to vertical, barbell tracks vertically along shins...").
+   - SEAMLESS REP TRANSITIONS: each rep ends at lockout and the next rep begins the eccentric descent immediately (after the 0.25s lockout hold only). Use explicit timestamps for all 4 reps to make the continuity unambiguous (e.g. Rep 1: 0s–2.5s, Rep 2: 2.5s–5.0s, Rep 3: 5.0s–7.5s, Rep 4: 7.5s–10.0s). Include this language verbatim: "ZERO cuts between repetitions — Rep N ends at lockout and Rep N+1 begins the eccentric descent immediately. The video is ONE single uninterrupted clip."
    - Name the exercise explicitly and describe only that exact movement pattern. Never describe a different movement.
    - Use anatomical precision: name joints, degrees of flexion/extension, which muscles are lengthening vs contracting.
    - Describe the implement's exact 3D path during each phase (barbell, dumbbell, cable, machine lever arm).

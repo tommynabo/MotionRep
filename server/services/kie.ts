@@ -134,21 +134,23 @@ export async function generateBaseImage(promptText: string): Promise<string> {
 
 /**
  * Step 2 of the 2-pass image pipeline.
- * Uses Flux Kontext Max in image-editing mode to surgically replace the
- * athlete's face in the base image with the reference model's appearance
- * (text-described), while preserving pose, background, equipment and logo.
- * The aspectRatio is intentionally omitted so the 2:3 ratio from step 1
- * is preserved without cropping.
+ * Uses Flux Kontext Max in multi-image editing mode to surgically replace the
+ * athlete's face in the base image with the reference model's face from the
+ * Supabase/Cloudinary reference photo, while preserving pose, background,
+ * equipment and logo from the base image.
  * Returns the URL of the identity-applied image.
  */
 export async function applyFaceIdentity(
   baseImageUrl: string,
-  _referenceImageUrl: string, // reserved for future multi-image API support
+  referenceImageUrl: string,
 ): Promise<string> {
   const prompt =
     `SURGICAL FACE REPLACEMENT — ONE CHANGE ONLY:
 
-PRESERVE ABSOLUTELY EVERYTHING in this image:
+IMAGE 1 (inputImages[0]) is the generated exercise photo — this is the base image.
+IMAGE 2 (inputImages[1]) is the reference athlete photo — this is the face source.
+
+PRESERVE ABSOLUTELY EVERYTHING from IMAGE 1:
 - Athlete's exact body pose, joint angles, and limb positions
 - Exercise equipment: position, size, and geometry
 - Background, floor, walls, and all lighting conditions
@@ -156,17 +158,12 @@ PRESERVE ABSOLUTELY EVERYTHING in this image:
 - Camera angle, framing, and crop
 
 THE SINGLE EDIT — FACE REPLACEMENT:
-Replace the athlete's face and head with a face matching this profile:
-- Young adult male, approximately 25–35 years old
-- Short dark hair, neatly groomed
-- Strong, defined facial structure: sharp cheekbones, chiseled jawline
-- Light-to-medium skin tone, clean-shaven or light stubble
-- Athletic, professional fitness-model appearance
-- Expression: neutral and focused, appropriate for athletic performance
-- Head size, angle, tilt, and orientation must match the original exactly
+Extract the face, head, hair, and neck ONLY from IMAGE 2 and transplant it onto the athlete in IMAGE 1.
+- Match the head size, angle, tilt, and orientation of the original head in IMAGE 1 exactly
 - Blend seamlessly at the neck — no visible seam or colour mismatch
+- Preserve IMAGE 2's facial identity: exact facial structure, skin tone, hair colour and style
 
-STRICT RULE: Do NOT change body position, equipment, background, lighting, shorts, logo, or any other element. If following this instruction would require changing anything else, return the input image completely unchanged.`;
+STRICT RULE: Do NOT change body position, equipment, background, lighting, shorts, logo, or any other element in IMAGE 1. Only the face/head changes.`;
 
   const safePrompt = prompt.length > 2950 ? prompt.slice(0, 2950) : prompt;
 
@@ -176,8 +173,7 @@ STRICT RULE: Do NOT change body position, equipment, background, lighting, short
     body: JSON.stringify({
       model: 'flux-kontext-max',
       prompt: safePrompt,
-      inputImage: baseImageUrl,
-      aspectRatio: '9:16',
+      inputImages: [baseImageUrl, referenceImageUrl],
       outputFormat: 'jpeg',
       safetyTolerance: 2,
     }),
@@ -418,7 +414,7 @@ export async function startSeedanceTask(
       prompt: safePrompt,
       input_urls: [imageUrl],
       aspect_ratio: '9:16',
-      duration: '12',
+      duration: '10',
       fixed_lens: true,
       generate_audio: false,
     },
