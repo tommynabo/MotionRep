@@ -245,7 +245,7 @@ Output: A refined image with only background and logo edited. Input pose, angle,
     method: 'POST',
     headers: kieHeaders(),
     body: JSON.stringify({
-      model: 'flux1-kontext',
+      model: 'flux-kontext-max',
       prompt: safePrompt,
       inputImage: imageUrl,
       aspectRatio: '9:16',

@@ -152,7 +152,7 @@ async function runPipeline(params: {
       .eq('id', generationId);
 
     // STEP C: Launch Seedance 2.0 text-to-video task (non-blocking).
-    // identityImageUrl (pose correct + face applied) is used as the visual anchor.
+    // identityImageUrl (white background + logo from B1, face applied in B2) is the visual anchor.
     // The biomechanical video prompt drives motion — no reference video required.
     console.log(`[Pipeline ${generationId}] Step C: Launching Seedance 2.0 task (non-blocking)...`);
     const seedanceTaskId = await startSeedanceTask(identityImageUrl, videoPrompt);
