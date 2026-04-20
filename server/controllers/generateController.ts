@@ -2,8 +2,7 @@ import { Request, Response } from 'express';
 import { waitUntil } from '@vercel/functions';
 import { supabase } from '../lib/supabase.js';
 import { buildDualPrompts } from '../services/claude.js';
-import { generateImageFromReference, startSeedance2MotionTask, checkKlingTask } from '../services/kie.js';
-import { getDirectMp4Url } from '../services/videoExtractor.js';
+import { generateBaseImage, applyFaceIdentity, startSeedanceTask, checkKlingTask } from '../services/kie.js';
 
 export async function startGeneration(req: Request, res: Response): Promise<void> {
   const { exercise_id, angle_id, user_observations } = req.body as {
@@ -23,7 +22,7 @@ export async function startGeneration(req: Request, res: Response): Promise<void
 
   // Fetch exercise, angle, master prompt and shorts logo
   const [exerciseResult, angleResult, masterPromptResult, shortsLogoResult, shortsLogoDescResult] = await Promise.all([
-    supabase.from('exercises').select('name, base_technique, equipment, muscle_groups, movement_pattern, technique_cues, reference_video_url').eq('id', exercise_id).single(),
+    supabase.from('exercises').select('name, base_technique, equipment, muscle_groups, movement_pattern, technique_cues').eq('id', exercise_id).single(),
     supabase.from('camera_angles').select('name, prompt_modifier').eq('id', angle_id).single(),
     supabase.from('config').select('value').eq('key', 'master_prompt').single(),
     supabase.from('config').select('value').eq('key', 'shorts_logo_url').single(),
@@ -92,7 +91,7 @@ export async function startGeneration(req: Request, res: Response): Promise<void
 
 async function runPipeline(params: {
   generationId: string;
-  exercise: { name: string; base_technique: string; equipment: string | null; muscle_groups: string[] | null; movement_pattern: string | null; technique_cues: string[] | null; reference_video_url: string | null };
+  exercise: { name: string; base_technique: string; equipment: string | null; muscle_groups: string[] | null; movement_pattern: string | null; technique_cues: string[] | null };
   angle: { name: string; prompt_modifier: string };
   userObservations: string;
   masterPrompt: string;
@@ -103,14 +102,6 @@ async function runPipeline(params: {
   const { generationId, exercise, angle, userObservations, masterPrompt, shortsLogoUrl, shortsLogoDescription, referenceImageUrl } = params;
 
   try {
-    // Guard: exercise must have an approved reference video before the pipeline can run.
-    if (!exercise.reference_video_url?.trim()) {
-      throw new Error(
-        `Exercise "${exercise.name}" has no approved reference video. ` +
-        `Use POST /api/exercises/:id/search-candidates to find CC-BY candidates, ` +
-        `then PUT /api/exercises/:id/approve-video to approve one before generating.`,
-      );
-    }
     // STEP A: Build dual JSON prompts with Claude
     console.log(`[Pipeline ${generationId}] Step A: Building dual prompts with Claude...`);
     await supabase.from('generations').update({ status: 'prompting' }).eq('id', generationId);
@@ -136,30 +127,40 @@ async function runPipeline(params: {
       .update({ final_prompt_used: JSON.stringify({ image: imagePrompt, video: videoPrompt }) })
       .eq('id', generationId);
 
-    // STEP B: Generate image with Flux Kontext Max (image-to-image with reference athlete)
-    console.log(`[Pipeline ${generationId}] Step B: Generating image with Flux Kontext...`);
+    // STEP B1: Generate base image with GPT Image 1.5 (pure Text-to-Image, no reference).
+    // Claude's imagePrompt already encodes pose, equipment, logo and background — the model
+    // obeys the biomechanical instructions 100% because no reference image can override them.
+    console.log(`[Pipeline ${generationId}] Step B1: Generating base image with GPT Image 1.5...`);
     await supabase.from('generations').update({ status: 'generating_image' }).eq('id', generationId);
-    const imageUrl = await generateImageFromReference(imagePrompt, referenceImageUrl);
+    const baseImageUrl = await generateBaseImage(imagePrompt);
 
     await supabase
       .from('generations')
-      .update({ image_url: imageUrl, status: 'image_done' })
+      .update({ image_url: baseImageUrl, status: 'base_image_done' })
       .eq('id', generationId);
 
-    // STEP C: Resolve direct MP4 URL from the approved CC-BY YouTube reference video.
-    console.log(`[Pipeline ${generationId}] Step C: Resolving direct MP4 from reference video...`);
-    const directMp4Url = await getDirectMp4Url(exercise.reference_video_url);
+    // STEP B2: Inject face identity with Flux Kontext Max (image-edit mode).
+    // Takes the base image as inputImage and surgically replaces only the face
+    // with the reference athlete's appearance while preserving pose, logo and background.
+    console.log(`[Pipeline ${generationId}] Step B2: Applying face identity with Flux Kontext Max...`);
+    await supabase.from('generations').update({ status: 'face_applied' }).eq('id', generationId);
+    const identityImageUrl = await applyFaceIdentity(baseImageUrl, referenceImageUrl);
 
-    // STEP D: Start Kling 3.0 motion-control task (non-blocking).
-    // Passes the Flux image (subject + white studio background + logo, all in one pass) and the direct MP4
-    // (biomechanical reference). background_source: 'input_image' preserves the white backdrop.
-    console.log(`[Pipeline ${generationId}] Step D: Launching Kling 3.0 motion-control task (non-blocking)...`);
-    const seedanceTaskId = await startSeedance2MotionTask(imageUrl, directMp4Url, videoPrompt);
+    await supabase
+      .from('generations')
+      .update({ image_url: identityImageUrl, status: 'image_done' })
+      .eq('id', generationId);
+
+    // STEP C: Launch Seedance 2.0 text-to-video task (non-blocking).
+    // identityImageUrl (pose correct + face applied) is used as the visual anchor.
+    // The biomechanical video prompt drives motion — no reference video required.
+    console.log(`[Pipeline ${generationId}] Step C: Launching Seedance 2.0 task (non-blocking)...`);
+    const seedanceTaskId = await startSeedanceTask(identityImageUrl, videoPrompt);
     await supabase
       .from('generations')
       .update({ status: 'animating', kie_video_task_id: seedanceTaskId })
       .eq('id', generationId);
-    console.log(`[Pipeline ${generationId}] Kling 3.0 motion-control task launched: ${seedanceTaskId}. Polling deferred to status endpoint.`);
+    console.log(`[Pipeline ${generationId}] Seedance 2.0 task launched: ${seedanceTaskId}. Polling deferred to status endpoint.`);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error(`[Pipeline ${generationId}] Failed:`, message);

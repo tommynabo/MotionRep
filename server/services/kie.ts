@@ -108,6 +108,88 @@ async function pollFluxTask(taskId: string): Promise<string> {
 }
 
 /**
+ * Step 1 of the 2-pass image pipeline.
+ * Pure Text-to-Image generation using GPT Image 1.5 — no reference image.
+ * The AI generates pose, equipment, logo and background entirely from the
+ * Claude-assembled prompt. Aspect ratio 2:3 (closest portrait available on
+ * this model). Returns the URL of the generated base image.
+ */
+export async function generateBaseImage(promptText: string): Promise<string> {
+  // GPT Image 1.5 accepts up to 5000 chars; leave headroom for safety
+  const safePrompt = promptText.length > 4000 ? promptText.slice(0, 4000) : promptText;
+
+  const taskId = await createTask({
+    model: 'gpt-image/1.5-text-to-image',
+    input: {
+      prompt: safePrompt,
+      aspect_ratio: '2:3',
+      quality: 'high',
+    },
+  });
+
+  const urls = await pollTask(taskId);
+  if (!urls[0]) throw new Error('GPT Image 1.5 did not return an image URL');
+  return urls[0];
+}
+
+/**
+ * Step 2 of the 2-pass image pipeline.
+ * Uses Flux Kontext Max in image-editing mode to surgically replace the
+ * athlete's face in the base image with the reference model's appearance
+ * (text-described), while preserving pose, background, equipment and logo.
+ * The aspectRatio is intentionally omitted so the 2:3 ratio from step 1
+ * is preserved without cropping.
+ * Returns the URL of the identity-applied image.
+ */
+export async function applyFaceIdentity(
+  baseImageUrl: string,
+  _referenceImageUrl: string, // reserved for future multi-image API support
+): Promise<string> {
+  const prompt =
+    `SURGICAL FACE REPLACEMENT — ONE CHANGE ONLY:
+
+PRESERVE ABSOLUTELY EVERYTHING in this image:
+- Athlete's exact body pose, joint angles, and limb positions
+- Exercise equipment: position, size, and geometry
+- Background, floor, walls, and all lighting conditions
+- Clothing and shorts — including any logo printed on the shorts fabric
+- Camera angle, framing, and crop
+
+THE SINGLE EDIT — FACE REPLACEMENT:
+Replace the athlete's face and head with a face matching this profile:
+- Young adult male, approximately 25–35 years old
+- Short dark hair, neatly groomed
+- Strong, defined facial structure: sharp cheekbones, chiseled jawline
+- Light-to-medium skin tone, clean-shaven or light stubble
+- Athletic, professional fitness-model appearance
+- Expression: neutral and focused, appropriate for athletic performance
+- Head size, angle, tilt, and orientation must match the original exactly
+- Blend seamlessly at the neck — no visible seam or colour mismatch
+
+STRICT RULE: Do NOT change body position, equipment, background, lighting, shorts, logo, or any other element. If following this instruction would require changing anything else, return the input image completely unchanged.`;
+
+  const safePrompt = prompt.length > 2950 ? prompt.slice(0, 2950) : prompt;
+
+  const res = await fetch(`${KIE_API_BASE}/flux/kontext/generate`, {
+    method: 'POST',
+    headers: kieHeaders(),
+    body: JSON.stringify({
+      model: 'flux-kontext-max',
+      prompt: safePrompt,
+      inputImage: baseImageUrl,
+      outputFormat: 'jpeg',
+      safetyTolerance: 6,
+    }),
+  });
+  const json = (await res.json()) as { code: number; msg: string; data: { taskId: string } };
+  if (json.code !== 200) {
+    throw new Error(`KIE face identity error ${json.code}: ${json.msg}`);
+  }
+
+  return await pollFluxTask(json.data.taskId);
+}
+
+/**
  * Second-pass Flux Kontext refinement: enforce pure white studio background
  * and composite the Symmetry brand logo onto the outer left thigh of the shorts.
  * The input is the first-pass generated image (may have non-white background).
@@ -289,42 +371,7 @@ export async function generateVideo(
   return videoUrl;
 }
 
-/**
- * Animate an image using Kling 3.0 motion-control (image + reference video).
- * The reference video drives the biomechanical movement frame-by-frame.
- * The generated image provides the subject appearance and background.
- * Returns the URL of the generated video.
- */
-export async function generateVideoMotionControl(
-  imageUrl: string,
-  referenceVideoUrl: string,
-  promptText: string,
-): Promise<string> {
-  // Kling 3.0 motion-control allows up to 2500 chars for the prompt
-  const safePrompt = promptText.length > 2500 ? promptText.slice(0, 2500) : promptText;
 
-  const taskId = await createTask({
-    model: 'kling-3.0/motion-control',
-    input: {
-      prompt: safePrompt,
-      input_urls: [imageUrl],
-      video_urls: [referenceVideoUrl],
-      sound: false,
-      mode: '1080p',
-      character_orientation: 'video',
-      // Use the generated image as background source (white studio backdrop),
-      // not the reference video background (real gym environment).
-      background_source: 'input_image',
-    },
-  });
-
-  const urls = await pollTask(taskId);
-  const videoUrl = urls[0];
-  if (!videoUrl) {
-    throw new Error('KIE Kling 3.0 motion-control did not return a video URL');
-  }
-  return videoUrl;
-}
 
 /**
  * Start a Kling 3.0 video task WITHOUT polling.
@@ -351,9 +398,10 @@ export async function startVideoKling3Task(
 }
 
 /**
- * Start a Seedance 1.5 Pro video task WITHOUT polling.
- * Seedance 1.5 Pro (bytedance/seedance-1.5-pro) — cost-effective tier with
- * solid movement quality for all exercise types.
+ * Start a Seedance 2.0 video task WITHOUT polling.
+ * Seedance 2.0 (bytedance/seedance-2.0) — top-tier text-to-video quality.
+ * Accepts the generated Flux image + a pure biomechanical text prompt.
+ * No reference video required — motion is described entirely in text.
  * Uses the same KIE /jobs/createTask and /jobs/recordInfo endpoints as Kling.
  * Returns the KIE task ID immediately — check with checkKlingTask().
  */
@@ -363,7 +411,7 @@ export async function startSeedanceTask(
 ): Promise<string> {
   const safePrompt = promptText.length > 2500 ? promptText.slice(0, 2500) : promptText;
   return await createTask({
-    model: 'bytedance/seedance-1.5-pro',
+    model: 'bytedance/seedance-2.0',
     input: {
       prompt: safePrompt,
       input_urls: [imageUrl],
@@ -375,37 +423,7 @@ export async function startSeedanceTask(
   });
 }
 
-/**
- * Start a Kling 3.0 motion-control task WITHOUT polling.
- * Motion-control drives the athlete's biomechanics frame-by-frame from a reference
- * MP4 video while using the generated Flux image as the subject + background source.
- * background_source: 'input_image' preserves the white studio backdrop from the
- * Flux image and discards the real-gym background of the reference video.
- *
- * @param imageUrl     - Refined Flux Kontext image URL (subject + white studio background)
- * @param directMp4Url - Direct MP4 stream URL of the CC-BY YouTube reference video
- * @param promptText   - Short static-camera + background-lock prompt
- * @returns KIE task ID — check progress with checkKlingTask()
- */
-export async function startSeedance2MotionTask(
-  imageUrl: string,
-  directMp4Url: string,
-  promptText: string,
-): Promise<string> {
-  const safePrompt = promptText.length > 2500 ? promptText.slice(0, 2500) : promptText;
-  return await createTask({
-    model: 'kling-3.0/motion-control',
-    input: {
-      prompt: safePrompt,
-      input_urls: [imageUrl],
-      video_urls: [directMp4Url],
-      sound: false,
-      mode: '1080p',
-      character_orientation: 'video',
-      background_source: 'input_image',
-    },
-  });
-}
+
 
 /**
  * Check a Kling video task once (no loop).
