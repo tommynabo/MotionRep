@@ -344,7 +344,7 @@ Do NOT include any preamble, explanation, or markdown. Output ONLY the JSON obje
 
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',
-    max_tokens: 4096,
+    max_tokens: 8192,
     messages: [{ role: 'user', content: userMessage }],
     system: systemMessage,
   });
