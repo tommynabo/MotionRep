@@ -232,23 +232,21 @@ Build the "video_prompt" string in this order (NEVER truncate these):
    "BACKGROUND ABSOLUTE LOCK: Every single frame must show the same white studio environment as the input image: bright white walls, white polished concrete floor, large pendant lights on a white ceiling. The background MUST NOT change, darken, or gain any new elements at any point during the video. No gym equipment in background, no coloured walls, no mirrors, no other people visible."
 
 6. Exercise motion description — FRAME BY FRAME (RULE 10 + RULE 5 tempo) [TIER 1]:
-   This is the core of the video_prompt. Describe the exercise motion in precise biomechanical terms, using exact tempo: 1.25s eccentric | 0.25s pause | 0.75s concentric | 0.25s lockout = 2.5s per rep × 4 reps = 10s total.
-   - Timestamps for all 4 reps: "Rep 1: 0s–2.5s, Rep 2: 2.5s–5.0s, Rep 3: 5.0s–7.5s, Rep 4: 7.5s–10.0s"
-   - Include this language verbatim: "ZERO cuts between repetitions — each rep ends at lockout and the next rep begins the eccentric descent immediately. The video is ONE single uninterrupted clip."
-   - Name the exercise explicitly
-   - ABSOLUTE PROHIBITION: DO NOT mention "reference video", "clone", "copy", "motion transfer", or any external video source
-
-9. Shorts logo continuity [TIER 1]:
-   "The ${shortsLogoDescription} logo on the outer left thigh of the black shorts remains visible and correctly placed throughout every frame."
+   This is the core of the video_prompt. Describe the exercise motion in precise biomechanical terms, using EXACT tempo: 1.25s eccentric | 0.25s pause | 0.75s concentric | 0.25s lockout = 2.5s per rep × 4 reps = 10s total.
+   CRITICAL: Include EXPLICIT timestamps for all 4 reps: "Rep 1: 0s–2.5s, Rep 2: 2.5s–5.0s, Rep 3: 5.0s–7.5s, Rep 4: 7.5s–10.0s"
+   For EACH rep, describe: ECCENTRIC phase (e.g., 0s–1.25s) with joint angles, PAUSE at bottom (e.g., 1.25s–1.5s), CONCENTRIC phase (e.g., 1.5s–2.25s), LOCKOUT phase (e.g., 2.25s–2.5s).
+   Include VERBATIM: "ZERO cuts between repetitions — each rep ends at lockout and the next begins immediately without pause. The video is ONE single uninterrupted 10-second clip."
+   Name the exercise explicitly by its exact user-provided name.
+   ABSOLUTE PROHIBITION: DO NOT mention "reference video", "clone", "copy", "motion transfer", "YouTube", or external sources. The prompt must be 100% self-contained biomechanical description.
 
 [END_TIER_1]
 
 **TIER 2 — HIGH PRIORITY (condense if needed):**
-7. Cable physics (only when equipment is Cable or Polea — RULE 8):
-   "CABLE PHYSICS LOCK: The cables are rigid physical constraints — their path at every frame is a straight taut diagonal from the fixed pulley wheel to the current hand position. Cable angles change smoothly and continuously with hand position — ZERO jumps, ZERO teleporting, ZERO slack."
+7. Cable physics (ONLY when equipment is Cable or Polea — RULE 8) [TIER 2]:
+   "CABLE PHYSICS LOCK: The cables are rigid physical constraints — their path at every frame is a straight taut diagonal from the fixed pulley wheel to the current hand position. Cable angles change smoothly and continuously with hand position — ZERO jumps, ZERO teleporting, ZERO slack. Bilateral cables remain perfectly mirrored throughout all 4 reps."
 
-8. Movement quality (condensed):
-   "Movement is steady, biomechanically perfect. Exactly 4 continuous repetitions."
+8. Movement quality and repetition precision (condensed) [TIER 2]:
+   "Movement is steady, biomechanically perfect, with zero swinging or momentum. Exactly 4 continuous repetitions with identical form in each rep."
 
 [END_TIER_2]
 
@@ -256,6 +254,9 @@ Build the "video_prompt" string in this order (NEVER truncate these):
 Excessive emphasis language or additional flourish description.
 
 [END_TIER_3]
+
+**IMPORTANT NOTE ABOUT SHORTS LOGO IN VIDEO:**
+DO NOT include explicit instructions about the shorts logo in the video_prompt. The input reference image already contains the logo on the athlete's left thigh. Seedance 2.0 will automatically preserve all visual elements from the reference image throughout the video animation. Adding logo instructions wastes valuable characters (we only have 2,500 total). The logo preservation is automatic and guaranteed by the AI model's visual understanding.
 
 ABSOLUTE PROHIBITION for video_prompt: Never mention "reference video", "CC-BY", "YouTube", "clone the video", "copy the motion", "motion transfer", or any external video source. The video prompt must be 100% self-contained biomechanical description.
 Equipment type: ${equipment}
@@ -280,7 +281,32 @@ CRITICAL ENFORCEMENT FOR THIS GENERATION:
 
 Pay special attention to RULE 3 (grip/implement) and apply the correct variant for the equipment type "${equipment}". If equipment involves cables or pulleys, enforce RULE 8 fully.
 
-⚠️ TRIPLE-CHECK BEFORE OUTPUTTING: Verify that the image_prompt shows ONLY the ${exerciseName} exercise in the position defined by RULE 11, with the implement prominently visible and gripped in the athlete's hands.`;
+⚠️ CRITICAL QUALITY CHECKLIST BEFORE OUTPUTTING:
+
+**For image_prompt — VERIFY ALL:**
+1. Exercise is "${exerciseName}" ONLY — no other movement, no hybrid exercises
+2. Position is static per RULE 11 (e.g., lockout for deadlift/press, peak for curl/row, depth or lockout for squat)
+3. Implement is CLEARLY VISIBLE and gripped in both athlete's hands (no floating, no invisible handles)
+4. LOGO IS EXPLICITLY PRESENT: "On the outer left thigh of the black shorts, place the logo: [description]. Size: 3cm × 3cm. Logo must be clearly visible."
+5. White studio background EXPLICITLY described (walls, floor, lights, shadow)
+6. Full body framing EXPLICITLY stated (head to feet, 24mm wide-angle, 40-50% frame height)
+7. TIER 1 section is COMPLETE and not truncated — verify content ends with [END_TIER_1] marker
+8. Total image_prompt length is within 2,950 characters
+
+**For video_prompt — VERIFY ALL:**
+1. Exercise is "${exerciseName}" ONLY — identical to image exercise name
+2. EXACTLY 4 repetitions with COMPLETE timestamps: "Rep 1: 0s–2.5s, Rep 2: 2.5s–5.0s, Rep 3: 5.0s–7.5s, Rep 4: 7.5s–10.0s"
+3. Each rep has COMPLETE breakdown: ECCENTRIC (1.25s with joint angles) | PAUSE (0.25s at bottom/contraction) | CONCENTRIC (0.75s with joint angles) | LOCKOUT (0.25s hold)
+4. "ZERO cuts between repetitions" language included VERBATIM
+5. NO explicit logo instructions (logo is in reference image and auto-preserved)
+6. Static camera + full body framing EXPLICITLY stated
+7. Background lock EXPLICITLY stated (white studio, no changes)
+8. Subject identity lock EXPLICITLY stated (no face morphing)
+9. TIER 1 section is COMPLETE and not truncated — verify content ends with [END_TIER_1] marker
+10. Total video_prompt length is within 2,500 characters
+
+**IF ANY CHECK FAILS:** Output an error message describing what's missing instead of truncating TIER 1. TIER 1 must ALWAYS be complete.`;
+
 
   const userMessage = `Generate the image_prompt and video_prompt for the "${exerciseName}" exercise following the rules and guidelines provided in the system message.
 
