@@ -258,12 +258,23 @@ Build the "video_prompt" string in this order (NEVER truncate these):
    "BACKGROUND ABSOLUTE LOCK: Every single frame must show the same white studio environment as the input image: bright white walls, white polished concrete floor, large pendant lights on a white ceiling. The background MUST NOT change, darken, or gain any new elements at any point during the video. No gym equipment in background, no coloured walls, no mirrors, no other people visible."
 
 6. Exercise motion description — FRAME BY FRAME (RULE 10 + RULE 5 tempo) [TIER 1]:
-   This is the core of the video_prompt. Describe the exercise motion in precise biomechanical terms, using EXACT tempo: 1.25s eccentric | 0.25s pause | 0.75s concentric | 0.25s lockout = 2.5s per rep × 4 reps = 10s total.
-   CRITICAL: Include EXPLICIT timestamps for all 4 reps: "Rep 1: 0s–2.5s, Rep 2: 2.5s–5.0s, Rep 3: 5.0s–7.5s, Rep 4: 7.5s–10.0s"
-   For EACH rep, describe: ECCENTRIC phase (e.g., 0s–1.25s) with joint angles, PAUSE at bottom (e.g., 1.25s–1.5s), CONCENTRIC phase (e.g., 1.5s–2.25s), LOCKOUT phase (e.g., 2.25s–2.5s).
+   This is the MOST CRITICAL section of the video_prompt. Describe the exercise motion in precise biomechanical terms, using EXACT tempo: 1.25s eccentric | 0.25s pause | 0.75s concentric | 0.25s lockout = 2.5s per rep × 4 reps = 10s total.
+   
+   **MANDATORY: Include ALL FOUR complete repetitions with explicit timestamps and full phase breakdown:**
+   - Rep 1: 0s–2.5s (ECCENTRIC 0s–1.25s, PAUSE 1.25s–1.5s, CONCENTRIC 1.5s–2.25s, LOCKOUT 2.25s–2.5s)
+   - Rep 2: 2.5s–5.0s (ECCENTRIC 2.5s–3.75s, PAUSE 3.75s–4.0s, CONCENTRIC 4.0s–4.75s, LOCKOUT 4.75s–5.0s)
+   - Rep 3: 5.0s–7.5s (ECCENTRIC 5.0s–6.25s, PAUSE 6.25s–6.5s, CONCENTRIC 6.5s–7.25s, LOCKOUT 7.25s–7.5s)
+   - Rep 4: 7.5s–10.0s (ECCENTRIC 7.5s–8.75s, PAUSE 8.75s–9.0s, CONCENTRIC 9.0s–9.75s, LOCKOUT 9.75s–10.0s)
+   
+   For EACH rep and EACH phase, explicitly describe joint angles, muscle engagement, barbell position, and movement direction. Do NOT abbreviate as "[Identical motion pattern]" — describe EVERY phase of EVERY rep in complete detail.
+   
    Include VERBATIM: "ZERO cuts between repetitions — each rep ends at lockout and the next begins immediately without pause. The video is ONE single uninterrupted 10-second clip."
+   
    Name the exercise explicitly by its exact user-provided name.
+   
    ABSOLUTE PROHIBITION: DO NOT mention "reference video", "clone", "copy", "motion transfer", "YouTube", or external sources. The prompt must be 100% self-contained biomechanical description.
+   
+   **CRITICAL INSTRUCTION: After completing the full motion description for all 4 reps, you MUST insert this exact marker on a new line:** [END_TIER_1]
 
 [END_TIER_1]
 
@@ -344,7 +355,7 @@ Do NOT include any preamble, explanation, or markdown. Output ONLY the JSON obje
 
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',
-    max_tokens: 8192,
+    max_tokens: 10000,
     messages: [{ role: 'user', content: userMessage }],
     system: systemMessage,
   });
