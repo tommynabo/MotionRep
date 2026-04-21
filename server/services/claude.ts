@@ -345,33 +345,68 @@ Pay special attention to RULE 3 (grip/implement) and apply the correct variant f
 **IF ANY CHECK FAILS:** Output an error message describing what's missing instead of truncating TIER 1. TIER 1 must ALWAYS be complete.`;
 
 
-  const userMessage = `Generate the image_prompt and video_prompt for the "${exerciseName}" exercise following the rules and guidelines provided in the system message.
+  // Two separate parallel calls so each prompt gets the full token budget
+  const imageUserMessage = `Generate the image_prompt for the "${exerciseName}" exercise following the rules and guidelines provided in the system message.
 
-Return ONLY a valid JSON object with exactly two keys:
+Return ONLY a valid JSON object with exactly ONE key:
 - "image_prompt": the complete prompt for GPT Image 1.5
+
+Do NOT include "video_prompt". Do NOT include any preamble, explanation, or markdown. Output ONLY the JSON object.`;
+
+  const videoUserMessage = `Generate the video_prompt for the "${exerciseName}" exercise following the rules and guidelines provided in the system message.
+
+Return ONLY a valid JSON object with exactly ONE key:
 - "video_prompt": the complete prompt for Seedance 2.0
 
-Do NOT include any preamble, explanation, or markdown. Output ONLY the JSON object.`;
+Do NOT include "image_prompt". Do NOT include any preamble, explanation, or markdown. Output ONLY the JSON object.
 
-  const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5',
-    max_tokens: 10000,
-    messages: [{ role: 'user', content: userMessage }],
-    system: systemMessage,
-  });
+CRITICAL: The video_prompt MUST include ALL FOUR complete repetitions (Rep 1, Rep 2, Rep 3, Rep 4) with COMPLETE phase descriptions for each rep. For every rep describe each phase in full biomechanical detail: ECCENTRIC (joint angles, barbell path), PAUSE (position, body state), CONCENTRIC (joint angles, drive direction), LOCKOUT (static hold). Do NOT abbreviate, do NOT skip any rep, do NOT write "[Identical motion pattern]".`;
 
-  const content = message.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type from Anthropic API');
+  const [imageMessage, videoMessage] = await Promise.all([
+    anthropic.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 5000,
+      messages: [{ role: 'user', content: imageUserMessage }],
+      system: systemMessage,
+    }),
+    anthropic.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 5000,
+      messages: [{ role: 'user', content: videoUserMessage }],
+      system: systemMessage,
+    }),
+  ]);
+
+  const imageContent = imageMessage.content[0];
+  if (imageContent.type !== 'text') {
+    throw new Error('Unexpected response type from Anthropic API (image)');
+  }
+  const videoContent = videoMessage.content[0];
+  if (videoContent.type !== 'text') {
+    throw new Error('Unexpected response type from Anthropic API (video)');
   }
 
-  let parsed: { image_prompt: string; video_prompt: string };
+  let parsedImage: { image_prompt: string };
+  let parsedVideo: { video_prompt: string };
+
   try {
-    const raw = content.text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-    parsed = JSON.parse(raw);
+    const rawImage = imageContent.text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    parsedImage = JSON.parse(rawImage);
   } catch {
-    throw new Error(`Claude returned invalid JSON: ${content.text.slice(0, 200)}`);
+    throw new Error(`Claude returned invalid JSON for image_prompt: ${imageContent.text.slice(0, 200)}`);
   }
+
+  try {
+    const rawVideo = videoContent.text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    parsedVideo = JSON.parse(rawVideo);
+  } catch {
+    throw new Error(`Claude returned invalid JSON for video_prompt: ${videoContent.text.slice(0, 200)}`);
+  }
+
+  const parsed = {
+    image_prompt: parsedImage.image_prompt,
+    video_prompt: parsedVideo.video_prompt,
+  };
 
   if (!parsed.image_prompt) {
     throw new Error('Claude JSON missing required "image_prompt" key');
