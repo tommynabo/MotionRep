@@ -43,25 +43,46 @@ OUTPUT RULES:
 - Be biomechanically precise and clinically accurate.
 - CRITICAL CHARACTER BUDGET — image_prompt: MUST NOT exceed 2900 characters. Hard limit — do NOT exceed it under any circumstance.
 - CRITICAL CHARACTER BUDGET — video_prompt: MUST NOT exceed 2500 characters. Hard limit — do NOT exceed it under any circumstance.
-- WRITE TO FIT: Plan the content to be complete and self-contained within each budget. Never truncate mid-sentence. Every prompt must end with a complete, grammatically closed sentence. Prioritise the most critical visual and biomechanical information. Be concise but precise — cut filler words, not essential biomechanical detail.
+
+INTELLIGENT TRUNCATION HIERARCHY (READ CAREFULLY):
+Your prompts are structured in three TIERS. If you MUST cut content to fit the budget, follow this order:
+1. **TIER 3 (OPTIONAL)**: Excessive flourish language, redundant prohibitions, over-emphasis language. CUT FIRST.
+2. **TIER 2 (HIGH PRIORITY)**: Muscle activation detail, lighting subtleties, bilateral symmetry descriptions. CONDENSE IF NEEDED.
+3. **TIER 1 (NON-NEGOTIABLE)**: Camera angle, exercise specificity, barbell visibility, grip detail, background white studio, shorts logo, full body framing. NEVER TRUNCATE TIER 1.
+
+At the end of your TIER 1 content (just before you transition to TIER 2), insert this marker: [END_TIER_1]
+At the end of your TIER 2 content (just before TIER 3), insert this marker: [END_TIER_2]
+At the end of your TIER 3 content, insert this marker: [END_TIER_3]
+
+If your prompt exceeds 2900 (image) or 2500 (video) characters:
+- FIRST: Remove all TIER 3 content completely
+- SECOND: If still over budget, condense TIER 2 (remove adjectives, keep core facts)
+- THIRD: If still over budget, return an ERROR message instead of truncating TIER 1
+- NEVER truncate TIER 1 mid-sentence. TIER 1 is inviolable.
+
+Example marker placement in image_prompt:
+"...camera angle instruction... STRICT ANGLE ENFORCEMENT...subject... exercise position...barbell visibility...background white studio...shorts logo...full body framing. [END_TIER_1] Erector spinae muscles are engaged...ambient lighting...bilateral symmetry detail. [END_TIER_2] Additional flourish about commercial aesthetic...excessive prohibition warnings. [END_TIER_3]"
+
+WRITE TO FIT: Plan the content to be complete and self-contained within each budget. Never truncate mid-sentence. Every prompt must end with a complete, grammatically closed sentence. Prioritise TIER 1 ruthlessly. Cut filler words and TIER 3 flourish before reducing TIER 1 or TIER 2 essential detail.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CORE RULES — JEFF NIPPARD CLINICAL STANDARD
 (These rules are non-negotiable and must be reflected in every prompt you output)
+Note: RULES 1-7, 9-11 are TIER 1 (non-negotiable). RULE 8 can be condensed if needed.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-RULE 1 — THE AESTHETIC (Background — applies to BOTH image and video):
+RULE 1 — THE AESTHETIC (Background — applies to BOTH image and video) [TIER 1]:
 The background must ALWAYS be described as:
 "Premium rented fitness studio. The space is entirely white: bright white walls, smooth polished white concrete floor. Large industrial-style pendant lights hang from a white ceiling, casting soft, even, professional illumination across the whole space. The athlete casts a faint, soft natural shadow on the floor directly beneath them — realistic and grounded, not dramatic. The ONLY objects visible in the frame are the athlete and the specific piece of equipment being used for this exercise (the machine, barbell rack, dumbbell, bench, etc.). No other gym machines, no extra equipment, no other people, no decorative elements are visible. The environment feels like an exclusive studio hired for a high-end fitness shoot: minimal, architectural, premium."
 This rule is ABSOLUTE and applies to every single frame of the video. The environment MUST NOT change at any point during the movement. PROHIBITION: dark gym atmosphere, coloured walls, industrial or warehouse aesthetic, visible logos or signage on walls, wood floors, rubber flooring, mirror walls, multiple machines visible in background, any non-white surface behind the athlete.
 
-RULE 2 — THE SUBJECT:
+RULE 2 — THE SUBJECT [TIER 1]:
 The subject must ALWAYS be described as:
 "A fit, athletic 30-year-old man with a lean, naturally toned physique — visible muscle definition, flat stomach, broad shoulders, but NOT a bodybuilder. He looks like a dedicated gym-goer or personal trainer: healthy, functional fitness level, moderate muscle size. Think men's fitness magazine cover, NOT a mass-gaining bodybuilder competition. He is shirtless to clearly display muscle activation and wearing solid black athletic shorts."
-SHORTS LOGO — CRITICAL: The outer left thigh of the black shorts has a logo printed on it. The logo is described as: "${shortsLogoDescription}". You MUST reproduce this description VERBATIM in the image_prompt like this: "On the outer left thigh of the black shorts, there is ${shortsLogoDescription} — clearly visible, precisely placed, not on the right leg, not on both legs, only on the left thigh outer face." PROHIBITION: do not invent a different logo, do not omit the logo, do not place it anywhere other than the outer left thigh.
+SHORTS LOGO — CRITICAL [TIER 1]: The outer left thigh of the black shorts has a logo printed on it. The logo is described as: "${shortsLogoDescription}". You MUST reproduce this description VERBATIM in the image_prompt like this: "On the outer left thigh of the black shorts, there is ${shortsLogoDescription} — clearly visible, precisely placed, not on the right leg, not on both legs, only on the left thigh outer face." PROHIBITION: do not invent a different logo, do not omit the logo, do not place it anywhere other than the outer left thigh.
 Preserve exact facial identity, facial structure, skin tone and hair from the provided reference image throughout. Do NOT alter or regenerate the face.
 
-RULE 3 — ANATOMY AND GRIP PRECAUTIONS (Equipment-aware, Critical):
+RULE 3 — ANATOMY AND GRIP PRECAUTIONS (Equipment-aware, Critical) [TIER 1]:
 The equipment type for this exercise is provided in the user message. You MUST adapt the grip and implement description based on that equipment type:
 
 - If equipment is "Barra" (barbell): "Hands and fingers are perfectly formed. Realistic five fingers securely gripping the bar. Thumbs are visibly wrapped around the bar. The metal bar does NOT blend or fuse with the skin. No extra fingers, no fused fingers, no floating hands, no missing thumbs. Natural knuckle definition and realistic skin compression against the bar."
@@ -74,7 +95,7 @@ The equipment type for this exercise is provided in the user message. You MUST a
 
 - For any other equipment: describe the implement-to-hand connection with the same level of anatomical precision.
 
-RULE 4 — GEOMETRIC CAMERA ANGLE (absolute enforcement — applies to BOTH image_prompt AND video_prompt):
+RULE 4 — GEOMETRIC CAMERA ANGLE (absolute enforcement — applies to BOTH image_prompt AND video_prompt) [TIER 1]:
 The camera angle instruction provided by the user is the single highest-priority visual constraint. It overrides any default tendency toward a frontal shot.
 For the IMAGE PROMPT: insert the camera angle instruction verbatim immediately after the format declaration, then add the violation warning below.
 For the VIDEO PROMPT: insert the camera angle instruction verbatim immediately after the FULL BODY FRAMING LOCKED block (step 2 of the video guide), then add the same violation warning. The video model MUST be told the angle — failure to include it causes the model to default to a frontal shot, which is a hard failure.
@@ -113,7 +134,7 @@ RULE 7 — FULL BODY FRAMING (mandatory, always):
 Every image_prompt MUST end with this exact framing instruction:
 "FULL BODY SHOT: The subject's entire body must be visible from head to feet with generous margin at top and bottom. Wide shot equivalent to a 24mm wide-angle lens at 10-12 metres distance. The subject occupies approximately 40-50% of the frame height, centred in frame. ABSOLUTE PROHIBITION: no cropping of feet, knees, hands, arms or head under any circumstance. The complete body silhouette including fully extended arms must be visible within the frame at all times. All equipment and machine structures must be fully visible without cropping or cutoff."
 
-RULE 8 — CABLE & PULLEY MACHINE VISUAL ANCHORING (mandatory when equipment is Cable or Polea):
+RULE 8 — CABLE & PULLEY MACHINE VISUAL ANCHORING (mandatory when equipment is Cable or Polea) [TIER 2]:
 If the exercise uses a cable machine, you MUST:
 1. Describe the cable machine visible in the background: both upright columns (left and right), the pulley wheel at the top of each column, and the weight stack partially visible. The machine is a fixed steel structure that does not move.
 2. Show each cable as a single, continuous, taut steel line from its pulley wheel diagonally to the attachment in the athlete's hand. Use language like: "A steel cable runs in a straight taut diagonal from the overhead pulley at the top of the left column to the D-ring handle gripped in the right hand, and a mirrored cable from the right column pulley to the left hand — both cables are under constant tension with no slack."
@@ -121,11 +142,11 @@ If the exercise uses a cable machine, you MUST:
 4. In the video_prompt, reinforce cable continuity across every frame: "The steel cables remain taut and physically connected throughout the entire range of motion. During the concentric phase, the cable angles smoothly and continuously change as the hands move — the cables do NOT jump, teleport, or suddenly change angle. During the eccentric phase, the cables smoothly return to their original angles. The cable angle at any frame is strictly determined by the geometric vector from the fixed pulley to the hand position in that frame. ABSOLUTE PROHIBITION: no slack cable, no floating cable, no cable disconnecting from the handle or the pulley, no cable blending with skin."
 5. ABSOLUTE PROHIBITION: generating the athlete performing the movement with hands empty, floating handles, or no visible cable connection is FORBIDDEN.
 
-RULE 9 — FULL BODY FRAMING IN VIDEO (mandatory, always):
+RULE 9 — FULL BODY FRAMING IN VIDEO (mandatory, always) [TIER 1]:
 In the video_prompt, after the static camera header, explicitly reinforce:
 "FULL BODY FRAMING LOCKED: The camera is positioned at 10-12 metres from the subject, equivalent to a 24mm wide-angle shot. The athlete's full body including fully extended arms is visible with generous margin at all sides throughout the entire video. The subject occupies approximately 40-50% of the frame height, centred. All equipment and machine structures are fully visible. ABSOLUTE PROHIBITION: no zoom in, no crop, no reframing during movement. Feet, knees, hands and head must remain fully in frame during every phase of the repetition, including at maximum arm extension. Equipment must remain fully visible and never exit the frame at any point during the movement."
 
-RULE 10 — EXERCISE MOTION ANCHOR (highest priority, non-negotiable):
+RULE 10 — EXERCISE MOTION ANCHOR (highest priority, non-negotiable) [TIER 1]:
 The movement in BOTH the image and video MUST PRECISELY match the exact exercise named in the user message. The exercise name is the absolute ground truth.
 ABSOLUTE PROHIBITION: generating any movement pattern that does not correspond to the named exercise is FORBIDDEN and makes the entire generation invalid.
 Examples of violations that must NEVER occur:
@@ -134,7 +155,7 @@ Examples of violations that must NEVER occur:
 - Exercise is "Rope Facepull" → generating a cable row or any pulling movement that is not a face pull is FORBIDDEN
 The equipment type AND the exercise name together define the EXACT and ONLY movement permitted. If in doubt, describe the movement joint-by-joint to ensure it matches precisely.
 
-RULE 11 — STATIC IMAGE POSITION ANCHOR (mandatory for image_prompt ONLY):
+RULE 11 — STATIC IMAGE POSITION ANCHOR (mandatory for image_prompt ONLY) [TIER 1]:
 For the image_prompt, the athlete MUST be shown in ONE specific static position — NEVER in a range-of-motion or mid-movement:
 - **DEADLIFT VARIANTS** (Conventional Deadlift, Romanian Deadlift, etc.): ALWAYS lockout position — standing fully erect, hips locked out 0°, knees locked out 0°, shoulders directly over the bar, barbell at mid-thigh or knee level, arms fully extended 0° elbow flexion, spine in perfect neutral. ABSOLUTE PROHIBITION: never show setup position, never show partial deadlift, never show athlete mid-pull. The lockout is the ONLY position permitted. The barbell MUST be prominently visible held at mid-thigh, gripped in both hands, under complete control.
 - **SQUAT VARIANTS**: show either (a) lockout/standing position after ascending from depth, or (b) at maximum depth — your choice, but consistent throughout. Never mid-range.
@@ -157,64 +178,86 @@ You MUST include this language verbatim in the video_prompt cable section:
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IMAGE PROMPT CONSTRUCTION GUIDE
+(TIER DISTRIBUTION: Steps 1-6, 8, 8b, 11 = TIER 1 | Steps 7, 9, 10 = TIER 2/3)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Build the "image_prompt" string in this order:
+
+**TIER 1 — NON-NEGOTIABLE CONTENT:**
+Build these elements in this order (NEVER truncate these):
 1. Format: "High quality commercial fitness photography, vertical 9:16 aspect ratio."
 2. Camera angle instruction (from RULE 4 — insert verbatim from user input, then add violation warning)
-3. Subject description (RULE 2)
-4. Exercise action: CRITICAL — The STATIC POSITION MUST MATCH RULE 11 exactly. For deadlifts: describe the lockout position with EXPLICIT detail — standing fully upright, hips and knees locked out 0°, shoulders directly over the barbell, arms fully extended holding the bar at mid-thigh height. For other exercises: describe the peak contraction or lockout position per RULE 11. Include joint angles, muscle belly visibility, body segment alignment, and spine neutrality. All anatomy described from the perspective of the specified camera angle (RULE 4). DO NOT SHOW MID-RANGE OR SETUP POSITIONS.
-5. Implement spatial positioning (RULE 6) — describe exactly where the barbell/dumbbell/cable is in 3D space relative to the body AND relative to the camera angle. FOR DEADLIFTS: explicitly state "The barbell is clearly visible, gripped in both hands with full hand/finger definition, resting against the mid-thigh of the athlete. The bar is a solid steel implement under complete control, not floating or disconnected from the hands. The barbell is the focal point of the image."
-6. Grip/hand anatomy (RULE 3) — adapted precisely to this exercise's implement (barbell/dumbbell/cable/bodyweight)
-7. Lighting: "Soft professional studio key light, subtle rim light highlighting muscle contours, shadowless fill — ideal for instructional biomechanics photography."
-8. Background (RULE 1): insert verbatim — "Premium rented fitness studio: bright white walls, smooth polished white concrete floor, large pendant lights on a white ceiling casting soft even illumination. The athlete casts a soft natural shadow on the floor beneath them. The ONLY objects visible are the athlete and the equipment for this exercise. No other machines, no extra people, no non-white surfaces visible. Exclusive high-end studio look — minimal, architectural, premium."
-8b. SHORTS LOGO PLACEMENT (CRITICAL — SINGLE PASS ONLY): "On the outer left thigh of the black shorts, place the logo: ${shortsLogoDescription}. Size: 3cm × 3cm on the lateral outer face of the left thigh ONLY (not right leg, not both). This is the ONLY Flux pass — the logo MUST be embedded here. There is NO second refinement pass. If logo placement would distort the leg structure, place it as close as possible to the left outer thigh without altering anatomy. Logo visibility is mandatory."
-9. Style: "Hyper-realistic instructional fitness photograph, 8K resolution, sharp focus on full body, no artistic filters, no motion blur."
-10. Coaching notes: include userObservations if provided, otherwise "Perfect standard form."
-11. Full body framing (RULE 7 — insert verbatim)
+3. Subject description (RULE 2) — "A fit, athletic 30-year-old man..." (condensed if needed, but core description required)
+4. Exercise action: CRITICAL STATIC POSITION per RULE 11. For deadlifts: "standing fully erect, hips locked out 0°, knees locked out 0°, shoulders directly over the barbell, spine in perfect neutral alignment, arms fully extended at 0° elbow flexion, barbell held at mid-thigh height." DO NOT SHOW MID-RANGE OR SETUP POSITIONS.
+5. Implement spatial positioning (RULE 6): "The barbell is clearly visible, gripped in both hands with realistic finger definition — realistic five fingers securely wrapped around the bar, thumbs visibly locked around the bar. The metal bar does NOT blend or fuse with the skin. The barbell rests against the front of both thighs at mid-thigh level, under complete control. The barbell is centered in the athlete's lower body, a horizontal line crossing the thighs with loaded plates visible on both ends. The barbell MUST be the focal visual anchor of the image."
+6. Grip/hand anatomy (RULE 3) — adapted to the equipment type, explicitly stating "realistic five fingers" and "thumbs visibly wrapped" for barbell
+8. Background (RULE 1) — INSERT VERBATIM: "Premium rented fitness studio: bright white walls, smooth polished white concrete floor, large pendant lights on a white ceiling casting soft even illumination. The athlete casts a soft natural shadow on the floor beneath them. The ONLY objects visible are the athlete and the barbell. No other machines, no extra people, no non-white surfaces visible. Exclusive high-end studio look — minimal, architectural, premium."
+8b. SHORTS LOGO PLACEMENT (CRITICAL — TIER 1, NEVER OMIT): "On the outer left thigh of the black shorts, place the logo: ${shortsLogoDescription}. Size: 3cm × 3cm on the lateral outer face of the left thigh ONLY (not right leg, not both). Logo must be clearly visible and precisely placed. Logo visibility is mandatory."
+11. Full body framing (RULE 7) — INSERT VERBATIM: "FULL BODY SHOT: The subject's entire body must be visible from head to feet with generous margin at top and bottom. Wide shot equivalent to a 24mm wide-angle lens at 10-12 metres distance. The subject occupies approximately 40-50% of the frame height, centred in frame. ABSOLUTE PROHIBITION: no cropping of feet, knees, hands, arms or head under any circumstance. All equipment must be fully visible without cropping or cutoff."
+
+[END_TIER_1]
+
+**TIER 2 — HIGH PRIORITY (condense if needed to fit budget):**
+7. Lighting (condensed): "Soft professional studio light highlighting muscle contours."
+9. Style (condensed): "Hyper-realistic instructional fitness photograph, 8K resolution, sharp focus on full body, no motion blur."
+10. Coaching notes (condensed): "Perfect standard form." (or user observations if brief)
+
+[END_TIER_2]
+
+**TIER 3 — OPTIONAL (cut first if over budget):**
+Additional flourish about commercial aesthetic, excessive prohibition language, or over-emphasis on bilateral symmetry language.
+
+[END_TIER_3]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 VIDEO PROMPT CONSTRUCTION GUIDE
+(TIER DISTRIBUTION: Steps 1-5, 6(motion), 9 = TIER 1 | Steps 7, 8 = TIER 2/3)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Build the "video_prompt" string in this order:
 
-1. Static camera header (RULE 5 — insert verbatim):
+**TIER 1 — NON-NEGOTIABLE CONTENT:**
+Build the "video_prompt" string in this order (NEVER truncate these):
+
+1. Static camera header (RULE 5 — INSERT VERBATIM):
    "ULTRA STATIC LOCKED CAMERA. ABSOLUTELY NO ZOOM, NO PANNING, NO SCENE CHANGES. The exact initial framing must be maintained throughout the entire video."
 
-2. Full body framing lock (RULE 9 — insert verbatim):
-   "FULL BODY FRAMING LOCKED: The camera is positioned at 10-12 metres from the subject, equivalent to a 24mm wide-angle shot. The athlete's full body including fully extended arms is visible with generous margin at all sides throughout the entire video. The subject occupies approximately 40-50% of the frame height, centred. All equipment and machine structures are fully visible. ABSOLUTE PROHIBITION: no zoom in, no crop, no reframing during movement. Feet, knees, hands and head must remain fully in frame during every phase of the repetition, including at maximum arm extension. Equipment must remain fully visible and never exit the frame at any point during the movement."
+2. Full body framing lock (RULE 9 — INSERT VERBATIM):
+   "FULL BODY FRAMING LOCKED: The camera is positioned at 10-12 metres from the subject, equivalent to a 24mm wide-angle shot. The athlete's full body including fully extended arms is visible with generous margin at all sides throughout the entire video. The subject occupies approximately 40-50% of the frame height, centred. All equipment and machine structures are fully visible. ABSOLUTE PROHIBITION: no zoom in, no crop, no reframing during movement. Feet, knees, hands and head must remain fully in frame during every phase of the repetition. Equipment must remain fully visible."
 
-3. Camera angle (RULE 4 — insert verbatim from user input, then add violation warning):
+3. Camera angle (RULE 4 — INSERT VERBATIM from user input, then add violation warning):
    Insert the camera angle instruction verbatim. Then add:
    "STRICT ANGLE ENFORCEMENT: A shot that deviates from the specified camera angle is ABSOLUTELY FORBIDDEN and voids the entire prompt. The specified angle is non-negotiable and must be maintained for every single frame."
 
 4. Subject and identity lock:
-   "The athlete is animated directly from the input image. Preserve exact facial identity, skin tone, hair, and physique from the input image throughout every frame. NO face morphing, NO identity drift, NO physique change. The athlete is SHIRTLESS — bare torso, no shirt, no sleeveless top, no garment of any kind on the upper body. This is non-negotiable: a shirtless athlete allows full visibility of muscle activation patterns and joint mechanics throughout every frame."
+   "The athlete is animated directly from the input image. Preserve exact facial identity, skin tone, hair, and physique from the input image throughout every frame. NO face morphing, NO identity drift, NO physique change. The athlete is SHIRTLESS — bare torso, no shirt, no sleeveless top, no garment of any kind on the upper body."
 
 5. Background lock (RULE 1 — mandatory every frame):
    "BACKGROUND ABSOLUTE LOCK: Every single frame must show the same white studio environment as the input image: bright white walls, white polished concrete floor, large pendant lights on a white ceiling. The background MUST NOT change, darken, or gain any new elements at any point during the video. No gym equipment in background, no coloured walls, no mirrors, no other people visible."
 
-6. Exercise motion description — FRAME BY FRAME (RULE 10 + RULE 5 tempo):
-   This is the core of the video_prompt. Describe the exercise motion in precise biomechanical terms, joint angle by joint angle, using the exact tempo from RULE 5:
-   - TEMPO: 1.25s eccentric lowering | 0.25s pause at bottom | 0.75s concentric drive | 0.25s lockout hold = 2.5s per rep × 4 reps = 10s total.
-   - Describe each phase with explicit joint angles and body segment positions (e.g. "0s–1.25s: hips hinge posteriorly, knees flex from 0° to 90°, torso descends while maintaining neutral spine at approximately 45° to vertical, barbell tracks vertically along shins...").
-   - SEAMLESS REP TRANSITIONS: each rep ends at lockout and the next rep begins the eccentric descent immediately (after the 0.25s lockout hold only). Use explicit timestamps for all 4 reps to make the continuity unambiguous (e.g. Rep 1: 0s–2.5s, Rep 2: 2.5s–5.0s, Rep 3: 5.0s–7.5s, Rep 4: 7.5s–10.0s). Include this language verbatim: "ZERO cuts between repetitions — Rep N ends at lockout and Rep N+1 begins the eccentric descent immediately. The video is ONE single uninterrupted clip."
-   - Name the exercise explicitly and describe only that exact movement pattern. Never describe a different movement.
-   - Use anatomical precision: name joints, degrees of flexion/extension, which muscles are lengthening vs contracting.
-   - Describe the implement's exact 3D path during each phase (barbell, dumbbell, cable, machine lever arm).
-   - ABSOLUTE PROHIBITION: DO NOT mention "reference video", "clone", "copy", "motion transfer", or any implication that motion is derived from an external video source. Motion is described 100% from this text.
+6. Exercise motion description — FRAME BY FRAME (RULE 10 + RULE 5 tempo) [TIER 1]:
+   This is the core of the video_prompt. Describe the exercise motion in precise biomechanical terms, using exact tempo: 1.25s eccentric | 0.25s pause | 0.75s concentric | 0.25s lockout = 2.5s per rep × 4 reps = 10s total.
+   - Timestamps for all 4 reps: "Rep 1: 0s–2.5s, Rep 2: 2.5s–5.0s, Rep 3: 5.0s–7.5s, Rep 4: 7.5s–10.0s"
+   - Include this language verbatim: "ZERO cuts between repetitions — each rep ends at lockout and the next rep begins the eccentric descent immediately. The video is ONE single uninterrupted clip."
+   - Name the exercise explicitly
+   - ABSOLUTE PROHIBITION: DO NOT mention "reference video", "clone", "copy", "motion transfer", or any external video source
 
-7. Cable physics (only when equipment is Cable or Polea — RULE 8/11):
-   "CABLE PHYSICS LOCK: The cables are rigid physical constraints — their path at every frame is a straight taut diagonal from the fixed pulley wheel to the current hand position. Cable angles change smoothly and continuously with hand position — ZERO jumps, ZERO teleporting, ZERO slack. Bilateral cables are perfectly mirrored. Cable moves precisely with the hands — no lag, no overshoot."
-
-8. Movement quality:
-   "Movement is steady, biomechanically perfect, absolutely no swinging or momentum. Exactly 4 continuous repetitions."
-
-9. Shorts logo continuity:
+9. Shorts logo continuity [TIER 1]:
    "The ${shortsLogoDescription} logo on the outer left thigh of the black shorts remains visible and correctly placed throughout every frame."
 
-ABSOLUTE PROHIBITION for video_prompt: Never mention "reference video", "CC-BY", "YouTube", "clone the video", "copy the motion", "motion transfer", or any external video source. The video prompt must be 100% self-contained biomechanical description.`;
+[END_TIER_1]
 
-  const userMessage = `Exercise: ${exerciseName}
+**TIER 2 — HIGH PRIORITY (condense if needed):**
+7. Cable physics (only when equipment is Cable or Polea — RULE 8):
+   "CABLE PHYSICS LOCK: The cables are rigid physical constraints — their path at every frame is a straight taut diagonal from the fixed pulley wheel to the current hand position. Cable angles change smoothly and continuously with hand position — ZERO jumps, ZERO teleporting, ZERO slack."
+
+8. Movement quality (condensed):
+   "Movement is steady, biomechanically perfect. Exactly 4 continuous repetitions."
+
+[END_TIER_2]
+
+**TIER 3 — OPTIONAL (cut first if over budget):**
+Excessive emphasis language or additional flourish description.
+
+[END_TIER_3]
+
+ABSOLUTE PROHIBITION for video_prompt: Never mention "reference video", "CC-BY", "YouTube", "clone the video", "copy the motion", "motion transfer", or any external video source. The video prompt must be 100% self-contained biomechanical description.
 Equipment type: ${equipment}
 Primary muscles: ${muscleGroups.length > 0 ? muscleGroups.join(', ') : 'Not specified'}
 Movement pattern: ${movementPattern || 'Not specified'}
@@ -266,23 +309,90 @@ Pay special attention to RULE 3 (grip/implement) and apply the correct variant f
     throw new Error('Claude JSON missing required "video_prompt" key');
   }
 
-  // Hard ceiling matching KIE Flux Kontext API limit (3000 chars).
-  // Claude is told 2900 — this catches any minor overrun before hitting the API.
-  const MAX_IMAGE_PROMPT_LENGTH = 2950;
+  // Smart truncation function that respects TIER boundaries
+  function truncateSmart(prompt: string, maxChars: number, promptType: 'image' | 'video'): { prompt: string; wasTruncated: boolean } {
+    if (prompt.length <= maxChars) {
+      return { prompt, wasTruncated: false };
+    }
 
-  const imagePrompt = parsed.image_prompt.length > MAX_IMAGE_PROMPT_LENGTH
-    ? parsed.image_prompt.slice(0, MAX_IMAGE_PROMPT_LENGTH)
-    : parsed.image_prompt;
+    const tier2Marker = '[END_TIER_2]';
+    const tier1Marker = '[END_TIER_1]';
+
+    // Try to truncate at TIER 2 boundary (remove all TIER 3 content)
+    const tier2Idx = prompt.lastIndexOf(tier2Marker);
+    if (tier2Idx > 0 && tier2Idx < maxChars) {
+      const truncated = prompt.substring(0, tier2Idx).replace(tier2Marker, '').trim();
+      if (truncated.length <= maxChars) {
+        // Ensure ends with period
+        const finalPrompt = truncated.endsWith('.') ? truncated : truncated + '.';
+        return { prompt: finalPrompt, wasTruncated: true };
+      }
+    }
+
+    // Try to truncate at TIER 1 boundary (emergency - this should rarely happen)
+    const tier1Idx = prompt.lastIndexOf(tier1Marker);
+    if (tier1Idx > 0 && tier1Idx < maxChars) {
+      const truncated = prompt.substring(0, tier1Idx).replace(tier1Marker, '').trim();
+      if (truncated.length <= maxChars) {
+        const finalPrompt = truncated.endsWith('.') ? truncated : truncated + '.';
+        return { prompt: finalPrompt, wasTruncated: true };
+      }
+    }
+
+    // Last resort: truncate at last sentence before maxChars
+    const lastPeriod = prompt.lastIndexOf('.', maxChars);
+    if (lastPeriod > maxChars * 0.8) {
+      // Only do this if period is at least 80% through the budget
+      return { prompt: prompt.substring(0, lastPeriod + 1), wasTruncated: true };
+    }
+
+    // Emergency: just slice, but mark it
+    console.warn(`WARNING: ${promptType} prompt for "${exerciseName}" had to be forcibly truncated — TIER structure was not respected`);
+    return { prompt: prompt.substring(0, maxChars), wasTruncated: true };
+  }
+
+  // Hard ceiling matching KIE Flux Kontext API limit (3000 chars).
+  const MAX_IMAGE_PROMPT_LENGTH = 2950;
+  const { prompt: imageTruncated, wasTruncated: imageWasTruncated } = truncateSmart(parsed.image_prompt, MAX_IMAGE_PROMPT_LENGTH, 'image');
 
   // Hard ceiling for Seedance 2.0 video prompt (KIE limit 2500 chars).
   const MAX_VIDEO_PROMPT_LENGTH = 2500;
+  const { prompt: videoTruncated, wasTruncated: videoWasTruncated } = truncateSmart(parsed.video_prompt, MAX_VIDEO_PROMPT_LENGTH, 'video');
 
-  const videoPrompt = parsed.video_prompt.length > MAX_VIDEO_PROMPT_LENGTH
-    ? parsed.video_prompt.slice(0, MAX_VIDEO_PROMPT_LENGTH)
-    : parsed.video_prompt;
+  // Validation: check that critical TIER 1 elements are present in image prompt
+  const imageValidation = {
+    hasLogoReference: imageTruncated.toLowerCase().includes('logo') || imageTruncated.toLowerCase().includes('left thigh'),
+    hasWhiteBackground: imageTruncated.toLowerCase().includes('white') && imageTruncated.toLowerCase().includes('studio'),
+    hasBarbell: imageTruncated.toLowerCase().includes('barbell') || imageTruncated.toLowerCase().includes('bar'),
+    hasGrip: imageTruncated.toLowerCase().includes('gripped') || imageTruncated.toLowerCase().includes('fingers'),
+    hasFullBody: imageTruncated.toLowerCase().includes('full body') || imageTruncated.toLowerCase().includes('entire body'),
+  };
+
+  // Validation: check that critical TIER 1 elements are present in video prompt
+  const videoValidation = {
+    hasStaticCamera: videoTruncated.includes('ULTRA STATIC LOCKED CAMERA'),
+    hasFullBodyFraming: videoTruncated.toLowerCase().includes('full body framing'),
+    hasLogoReference: videoTruncated.toLowerCase().includes('logo') || videoTruncated.toLowerCase().includes('left thigh'),
+    hasZeroCuts: videoTruncated.toLowerCase().includes('zero cuts') || videoTruncated.toLowerCase().includes('ZERO cuts'),
+  };
+
+  // Log truncation warnings if needed
+  if (imageWasTruncated) {
+    const missingElements = Object.entries(imageValidation).filter(([_, v]) => !v).map(([k]) => k);
+    if (missingElements.length > 0) {
+      console.warn(`⚠️ IMAGE PROMPT TRUNCATED for "${exerciseName}": Missing validation checks: ${missingElements.join(', ')}`);
+    }
+  }
+
+  if (videoWasTruncated) {
+    const missingElements = Object.entries(videoValidation).filter(([_, v]) => !v).map(([k]) => k);
+    if (missingElements.length > 0) {
+      console.warn(`⚠️ VIDEO PROMPT TRUNCATED for "${exerciseName}": Missing validation checks: ${missingElements.join(', ')}`);
+    }
+  }
 
   return {
-    imagePrompt,
-    videoPrompt,
+    imagePrompt: imageTruncated,
+    videoPrompt: videoTruncated,
   };
 }

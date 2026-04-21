@@ -21,6 +21,18 @@ interface PromptMeta {
     tenSeconds: boolean;
     fourReps: boolean;
   };
+  tierBreakdown?: {
+    image: {
+      tier1Chars: number;
+      tier1Percentage: number;
+      budgetRemaining: number;
+    };
+    video: {
+      tier1Chars: number;
+      tier1Percentage: number;
+      budgetRemaining: number;
+    };
+  };
 }
 
 interface PromptResult {
@@ -269,6 +281,61 @@ export default function PromptTester() {
               </span>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* TIER Breakdown */}
+      {result && result.meta.tierBreakdown && (
+        <div className="bg-dark-surface border border-dark-border rounded-2xl px-5 py-4">
+          <p className="text-xs text-zinc-500 uppercase tracking-wider font-medium mb-4">Desglose de Tiers</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Image TIER Breakdown */}
+            <div>
+              <p className="text-xs font-semibold text-zinc-400 mb-2">Imagen</p>
+              <div className="space-y-2">
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-zinc-500">TIER 1 (Crítico)</span>
+                    <span className="text-xs text-neon-blue font-mono">{result.meta.tierBreakdown.image.tier1Chars}ch ({result.meta.tierBreakdown.image.tier1Percentage}%)</span>
+                  </div>
+                  <div className="h-2 bg-dark-bg rounded-full overflow-hidden">
+                    <div className="h-full bg-neon-blue rounded-full" style={{ width: `${result.meta.tierBreakdown.image.tier1Percentage}%` }} />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center text-xs text-zinc-500">
+                  <span>Presupuesto disponible</span>
+                  <span className={result.meta.tierBreakdown.image.budgetRemaining > 0 ? 'text-neon-green' : 'text-red-400'}>
+                    {result.meta.tierBreakdown.image.budgetRemaining} / {result.meta.imagePromptBudget}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Video TIER Breakdown */}
+            <div>
+              <p className="text-xs font-semibold text-zinc-400 mb-2">Video</p>
+              <div className="space-y-2">
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-zinc-500">TIER 1 (Crítico)</span>
+                    <span className="text-xs text-neon-blue font-mono">{result.meta.tierBreakdown.video.tier1Chars}ch ({result.meta.tierBreakdown.video.tier1Percentage}%)</span>
+                  </div>
+                  <div className="h-2 bg-dark-bg rounded-full overflow-hidden">
+                    <div className="h-full bg-neon-blue rounded-full" style={{ width: `${result.meta.tierBreakdown.video.tier1Percentage}%` }} />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center text-xs text-zinc-500">
+                  <span>Presupuesto disponible</span>
+                  <span className={result.meta.tierBreakdown.video.budgetRemaining > 0 ? 'text-neon-green' : 'text-red-400'}>
+                    {result.meta.tierBreakdown.video.budgetRemaining} / {result.meta.videoPromptBudget}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-zinc-600 mt-3 border-t border-dark-border pt-3">
+            <span className="text-neon-blue">ℹ️ TIER 1</span> = Ángulo cámara, pose del ejercicio, barbell visible, logo, fondo blanco, cuerpo completo (nunca se trunca)
+          </p>
         </div>
       )}
 

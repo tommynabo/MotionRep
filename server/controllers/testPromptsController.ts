@@ -103,19 +103,43 @@ export async function testPrompts(req: Request, res: Response): Promise<void> {
       fourReps: videoPrompt.includes('4 rep') || videoPrompt.includes('four rep') || videoPrompt.includes('Rep 4'),
     };
 
+    // TIER breakdown analysis
+    const imageTier1End = imagePrompt.indexOf('[END_TIER_1]');
+    const imageTier2End = imagePrompt.indexOf('[END_TIER_2]');
+    const videoTier1End = videoPrompt.indexOf('[END_TIER_1]');
+    const videoTier2End = videoPrompt.indexOf('[END_TIER_2]');
+
+    const imagePromptClean = imagePrompt.replace(/\[END_TIER_[1-3]\]/g, '').trim();
+    const videoPromptClean = videoPrompt.replace(/\[END_TIER_[1-3]\]/g, '').trim();
+
+    const tier1ImageChars = imageTier1End > 0 ? imageTier1End : imagePromptClean.length;
+    const tier1VideoChars = videoTier1End > 0 ? videoTier1End : videoPromptClean.length;
+
     res.json({
-      imagePrompt,
-      videoPrompt,
+      imagePrompt: imagePromptClean,
+      videoPrompt: videoPromptClean,
       meta: {
-        imagePromptLength: imagePrompt.length,
-        videoPromptLength: videoPrompt.length,
+        imagePromptLength: imagePromptClean.length,
+        videoPromptLength: videoPromptClean.length,
         imagePromptBudget: IMAGE_BUDGET,
         videoPromptBudget: VIDEO_BUDGET,
-        imagePromptOk: imagePrompt.length <= IMAGE_BUDGET,
-        videoPromptOk: videoPrompt.length <= VIDEO_BUDGET,
+        imagePromptOk: imagePromptClean.length <= IMAGE_BUDGET,
+        videoPromptOk: videoPromptClean.length <= VIDEO_BUDGET,
         exerciseName: exercise.name,
         cameraAngle: angle.name,
         checks,
+        tierBreakdown: {
+          image: {
+            tier1Chars: tier1ImageChars,
+            tier1Percentage: Math.round((tier1ImageChars / IMAGE_BUDGET) * 100),
+            budgetRemaining: IMAGE_BUDGET - imagePromptClean.length,
+          },
+          video: {
+            tier1Chars: tier1VideoChars,
+            tier1Percentage: Math.round((tier1VideoChars / VIDEO_BUDGET) * 100),
+            budgetRemaining: VIDEO_BUDGET - videoPromptClean.length,
+          },
+        },
       },
     });
   } catch (err) {
