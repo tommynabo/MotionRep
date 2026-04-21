@@ -24,11 +24,11 @@ function buildImageFixedFooter(): string {
 }
 
 function buildVideoFixedHeader(cameraModifier: string): string {
-  return `ULTRA STATIC LOCKED CAMERA. ABSOLUTELY NO ZOOM, NO PANNING, NO SCENE CHANGES. The exact initial framing must be maintained throughout the entire video. FULL BODY FRAMING LOCKED: The camera is positioned at 10-12 metres from the subject, equivalent to a 24mm wide-angle shot. The athlete's full body including fully extended arms is visible with generous margin at all sides throughout the entire video. The subject occupies approximately 40-50% of the frame height, centred. All equipment and machine structures are fully visible. ABSOLUTE PROHIBITION: no zoom in, no crop, no reframing during movement. Feet, knees, hands and head must remain fully in frame during every phase of the repetition. Equipment must remain fully visible. ${cameraModifier} STRICT ANGLE ENFORCEMENT: A shot that deviates from the specified camera angle is ABSOLUTELY FORBIDDEN and voids the entire prompt. The specified angle is non-negotiable and must be maintained for every single frame. The athlete is animated directly from the input image. Preserve exact facial identity, skin tone, hair, and physique from the input image throughout every frame. NO face morphing, NO identity drift, NO physique change. The athlete is SHIRTLESS — bare torso, no shirt, no sleeveless top, no garment of any kind on the upper body. BACKGROUND ABSOLUTE LOCK: Every single frame must show the same white studio environment as the input image: bright white walls, white polished concrete floor, large pendant lights on a white ceiling. The background MUST NOT change, darken, or gain any new elements at any point during the video. No gym equipment in background, no coloured walls, no mirrors, no other people visible. `;
+  return `ULTRA STATIC LOCKED CAMERA — NO ZOOM, NO PANNING, NO REFRAMING. FULL BODY FRAMING LOCKED: camera 10-12m away (24mm wide-angle). Athlete's full body with generous margin visible at all sides, subject at 40-50% frame height, centred. PROHIBITION: no zoom, no crop, no reframing — feet, knees, hands, head fully in frame every phase. ${cameraModifier} STRICT ANGLE ENFORCEMENT: Deviation from specified angle VOIDS this prompt. Angle maintained every single frame. Athlete animated from input image — preserve exact facial identity, skin tone, hair, physique. NO face morphing, NO identity drift. SHIRTLESS — bare torso, no upper-body garment. BACKGROUND ABSOLUTE LOCK: every frame shows same white studio: bright white walls, white concrete floor, pendant lights on white ceiling. Background MUST NOT change, darken, or gain new elements. No gym equipment, no coloured walls, no mirrors, no other people. `;
 }
 
 function buildVideoFixedFooter(): string {
-  return ` ZERO cuts between repetitions — each rep ends at lockout and the next begins immediately without pause. The video is ONE single uninterrupted 10-second clip. Movement is steady, biomechanically perfect, absolutely no swinging or momentum. Exactly 4 continuous repetitions with identical form in each rep.`;
+  return ` ZERO cuts between reps — each rep flows directly into the next. ONE uninterrupted 10-second clip. Steady, biomechanically perfect. Exactly 4 continuous reps with identical form.`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ CRITICAL: Describe ALL FOUR reps. For Rep 1 describe every phase in full detail 
 
 Return ONLY this JSON (no markdown, no other text):
 {
-  "motion_description": "Complete 4-rep motion breakdown starting with 'EXERCISE NAME MOTION — EXACTLY 4 REPETITIONS with timestamps: Rep 1: 0s–2.5s, Rep 2: 2.5s–5.0s, Rep 3: 5.0s–7.5s, Rep 4: 7.5s–10.0s.' followed by the detailed phase descriptions. Max 1300 characters."
+  "motion_description": "Complete 4-rep motion breakdown starting with 'EXERCISE NAME MOTION — EXACTLY 4 REPETITIONS with timestamps: Rep 1: 0s–2.5s, Rep 2: 2.5s–5.0s, Rep 3: 5.0s–7.5s, Rep 4: 7.5s–10.0s.' followed by the detailed phase descriptions. Max 1100 characters."
 }`;
 
   // Run both API calls in parallel — each has its own full token budget
