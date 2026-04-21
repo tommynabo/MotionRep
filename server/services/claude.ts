@@ -282,6 +282,14 @@ Pay special attention to RULE 3 (grip/implement) and apply the correct variant f
 
 ⚠️ TRIPLE-CHECK BEFORE OUTPUTTING: Verify that the image_prompt shows ONLY the ${exerciseName} exercise in the position defined by RULE 11, with the implement prominently visible and gripped in the athlete's hands.`;
 
+  const userMessage = `Generate the image_prompt and video_prompt for the "${exerciseName}" exercise following the rules and guidelines provided in the system message.
+
+Return ONLY a valid JSON object with exactly two keys:
+- "image_prompt": the complete prompt for GPT Image 1.5
+- "video_prompt": the complete prompt for Seedance 2.0
+
+Do NOT include any preamble, explanation, or markdown. Output ONLY the JSON object.`;
+
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',
     max_tokens: 4096,
