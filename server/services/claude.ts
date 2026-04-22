@@ -24,7 +24,7 @@ function buildImageFixedFooter(): string {
 }
 
 function buildVideoFixedHeader(cameraModifier: string): string {
-  return `ULTRA STATIC LOCKED CAMERA — NO ZOOM, NO PANNING, NO REFRAMING. FULL BODY FRAMING LOCKED: camera 8-10m away (85mm telephoto, flat perspective, zero distortion). Athlete's full body with generous margin visible at all sides, subject at 40-50% frame height, centred. PROHIBITION: no zoom, no crop, no reframing — feet, knees, hands, head fully in frame every phase. ${cameraModifier} STRICT ANGLE ENFORCEMENT: Deviation from specified angle VOIDS this prompt. Angle maintained every single frame. Athlete animated from input image — preserve exact facial identity, skin tone, hair, physique. NO face morphing, NO identity drift. SHIRTLESS — bare torso, no upper-body garment. BACKGROUND ABSOLUTE LOCK: every frame shows same white studio: bright white walls, white concrete floor, clean white ceiling. No lamps, no lighting fixtures. Background MUST NOT change, darken, or gain new elements. No gym equipment, no coloured walls, no mirrors, no other people. `;
+  return `ULTRA STATIC LOCKED CAMERA — NO ZOOM, NO PANNING, NO REFRAMING. FULL BODY FRAMING LOCKED: camera 8-10m away (85mm telephoto, flat perspective, zero distortion). Athlete's full body with generous margin visible at all sides, subject at 40-50% frame height, centred. PROHIBITION: no zoom, no crop, no reframing — feet, knees, hands, head fully in frame every phase. ${cameraModifier} STRICT ANGLE ENFORCEMENT: Deviation from specified angle VOIDS this prompt. Angle maintained every single frame. INPUT IMAGE IS THE SINGLE SOURCE OF TRUTH: animate the exact person shown in the input image — same face, same hair, same skin tone, same black athletic shorts with logo on left thigh, same white studio background. The first frame MUST match the input image exactly. NO face morphing, NO identity drift, NO clothing change, NO background change. SHIRTLESS — bare torso, no upper-body garment. BACKGROUND ABSOLUTE LOCK: every frame shows same white studio: bright white walls, white concrete floor, clean white ceiling. No lamps, no lighting fixtures. Background MUST NOT change, darken, or gain new elements. No gym equipment, no coloured walls, no mirrors, no other people. `;
 }
 
 function buildVideoFixedFooter(): string {
@@ -103,7 +103,7 @@ CRITICAL: Describe ALL FOUR reps. For Rep 1 describe every phase in full detail 
 
 Return ONLY this JSON (no markdown, no other text):
 {
-  "motion_description": "Complete 4-rep motion breakdown starting with 'EXERCISE NAME MOTION — EXACTLY 4 REPETITIONS with timestamps: Rep 1: 0s–2.5s, Rep 2: 2.5s–5.0s, Rep 3: 5.0s–7.5s, Rep 4: 7.5s–10.0s.' followed by the detailed phase descriptions. Max 1100 characters."
+  "motion_description": "Complete 4-rep motion breakdown starting with 'EXERCISE NAME MOTION — EXACTLY 4 REPETITIONS with timestamps: Rep 1: 0s–2.5s, Rep 2: 2.5s–5.0s, Rep 3: 5.0s–7.5s, Rep 4: 7.5s–10.0s.' followed by the detailed phase descriptions. Max 2000 characters."
 }`;
 
   // Run both API calls in parallel — each has its own full token budget
@@ -149,8 +149,11 @@ Return ONLY this JSON (no markdown, no other text):
   if (!parsedVideo.motion_description) throw new Error('Claude JSON missing "motion_description" key');
 
   // ── Assemble final prompts from hardcoded skeleton + Claude-generated content ──
-  const MAX_IMAGE_PROMPT_LENGTH = 2950;
-  const MAX_VIDEO_PROMPT_LENGTH = 2500;
+  // Image prompt is prepended with a ~550 char Flux identity prefix in generateImageFromReference.
+  // Keep image prompt at ≤2400 chars so combined stays within Flux Kontext's 2950 hard limit.
+  const MAX_IMAGE_PROMPT_LENGTH = 2400;
+  // Seedance accepts up to ~4500 chars. All 4 reps fully described needs ~2500+ chars from Claude.
+  const MAX_VIDEO_PROMPT_LENGTH = 4000;
 
   const rawImagePrompt =
     buildImageFixedHeader(cameraModifier, shortsLogoDescription) +

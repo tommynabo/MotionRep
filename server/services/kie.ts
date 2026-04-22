@@ -288,7 +288,7 @@ export async function generateImageFromReference(
     method: 'POST',
     headers: kieHeaders(),
     body: JSON.stringify({
-      model: 'flux1-kontext',
+      model: 'flux-kontext-max',
       prompt: safePrompt,
       inputImage: referenceImageUrl,
       aspectRatio: '9:16',
@@ -407,7 +407,8 @@ export async function startSeedanceTask(
   imageUrl: string,
   promptText: string,
 ): Promise<string> {
-  const safePrompt = promptText.length > 2500 ? promptText.slice(0, 2500) : promptText;
+  // Seedance accepts up to ~4500 chars. Match the MAX_VIDEO_PROMPT_LENGTH ceiling from claude.ts.
+  const safePrompt = promptText.length > 4000 ? promptText.slice(0, 4000) : promptText;
   return await createTask({
     model: 'bytedance/seedance-2',
     input: {
