@@ -217,7 +217,7 @@ THE ONLY TWO CHANGES YOU WILL MAKE:
    - All pixels that are NOT the athlete's skin, hair or the exercise equipment must become:
      * Bright white smooth walls (#FFFFFF)
      * Bright white polished concrete floor
-     * Industrial black pendant lights (large domes) hanging from white ceiling
+     * Clean white ceiling — no visible lighting fixtures
      * A single soft natural shadow cast by the athlete directly on the floor (depth only, minimal)
    - REMOVE: any gym equipment/machines in background, mirrors, colored walls, signage, people, any non-white surface
    - KEEP: only the athlete and the ONE piece of equipment they are using — nothing else visible

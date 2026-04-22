@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { waitUntil } from '@vercel/functions';
 import { supabase } from '../lib/supabase.js';
 import { buildDualPrompts } from '../services/claude.js';
-import { generateBaseImage, applyFaceIdentity, startSeedanceTask, checkKlingTask } from '../services/kie.js';
+import { generateImageFromReference, startSeedanceTask, checkKlingTask } from '../services/kie.js';
 
 export async function startGeneration(req: Request, res: Response): Promise<void> {
   const { exercise_id, angle_id, user_observations } = req.body as {
@@ -128,24 +128,12 @@ async function runPipeline(params: {
       .update({ final_prompt_used: JSON.stringify({ image: imagePrompt, video: videoPrompt }) })
       .eq('id', generationId);
 
-    // STEP B1: Generate base image with GPT Image 1.5 (pure Text-to-Image, no reference).
-    // Claude's imagePrompt already encodes pose, equipment, logo and background — the model
-    // obeys the biomechanical instructions 100% because no reference image can override them.
-    console.log(`[Pipeline ${generationId}] Step B1: Generating base image with GPT Image 1.5...`);
+    // STEP B: Generate image with Flux Kontext Max using the reference athlete as identity anchor.
+    // The reference image is passed as inputImage so Flux preserves the athlete's face, skin tone
+    // and physique, while the Claude prompt drives the exercise pose, equipment, logo and background.
+    console.log(`[Pipeline ${generationId}] Step B: Generating image with Flux Kontext Max (reference identity)...`);
     await supabase.from('generations').update({ status: 'generating_image' }).eq('id', generationId);
-    const baseImageUrl = await generateBaseImage(imagePrompt);
-
-    await supabase
-      .from('generations')
-      .update({ image_url: baseImageUrl, status: 'base_image_done' })
-      .eq('id', generationId);
-
-    // STEP B2: Inject face identity with Flux Kontext Max (image-edit mode).
-    // Takes the base image as inputImage and surgically replaces only the face
-    // with the reference athlete's appearance while preserving pose, logo and background.
-    console.log(`[Pipeline ${generationId}] Step B2: Applying face identity with Flux Kontext Max...`);
-    await supabase.from('generations').update({ status: 'face_applied' }).eq('id', generationId);
-    const identityImageUrl = await applyFaceIdentity(baseImageUrl, referenceImageUrl);
+    const identityImageUrl = await generateImageFromReference(imagePrompt, referenceImageUrl);
 
     await supabase
       .from('generations')
